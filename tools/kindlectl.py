@@ -299,6 +299,11 @@ def cmd_swipe(dev, prof, args):
     print(run_touch(dev, prof, args, ["swipe", args.x1, args.y1, args.x2, args.y2, args.ms]), end="")
 
 
+def cmd_drag(dev, prof, args):
+    # Hold, then pan: how you select text in KOReader.
+    print(run_touch(dev, prof, args, ["drag", args.x1, args.y1, args.x2, args.y2, args.hold, args.ms]), end="")
+
+
 def cmd_key(dev, prof, args):
     spot = (prof.get("keys") or {}).get(args.name)
     if not spot:
@@ -401,12 +406,15 @@ def main():
 
     for name, fn, coords in (("tap", cmd_tap, ("x", "y")),
                              ("longpress", cmd_longpress, ("x", "y")),
-                             ("swipe", cmd_swipe, ("x1", "y1", "x2", "y2"))):
+                             ("swipe", cmd_swipe, ("x1", "y1", "x2", "y2")),
+                             ("drag", cmd_drag, ("x1", "y1", "x2", "y2"))):
         p = sub.add_parser(name)
         for c in coords:
             p.add_argument(c, type=int)
         if name != "tap":
-            p.add_argument("--ms", type=int, default=800 if name == "longpress" else 300)
+            p.add_argument("--ms", type=int, default={"longpress": 800, "drag": 400}.get(name, 300))
+        if name == "drag":
+            p.add_argument("--hold", type=int, default=900, help="hold before panning (ms)")
         p.add_argument("--raw", action="store_true", help="coordinates are panel units")
         p.set_defaults(fn=fn)
 

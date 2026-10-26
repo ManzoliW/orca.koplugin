@@ -306,7 +306,8 @@ function Client:unsubscribeTerminal(handle, request_id)
     })
 end
 
--- Returns { [terminal handle] = agentStatus table } for every live terminal.
+-- Returns { [terminal handle] = agentStatus table } for every live terminal,
+-- with the tab's `title` and `worktree` id added to each entry.
 function Client:agentStates()
     local result, err = self:call("session.tabs.listAll")
     if not result then return nil, err end
@@ -315,6 +316,8 @@ function Client:agentStates()
         for _, tab in ipairs(type(snapshot.tabs) == "table" and snapshot.tabs or {}) do
             local status = tab.agentStatus
             if type(tab.terminal) == "string" and type(status) == "table" then
+                status.title = type(tab.title) == "string" and tab.title or nil
+                status.worktree = type(snapshot.worktree) == "string" and snapshot.worktree or nil
                 states[tab.terminal] = status
             end
         end

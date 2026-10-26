@@ -30,6 +30,8 @@ int close(int fd);
 int ioctl(int fd, unsigned long request, ...);
 ssize_t write(int fd, const void *buf, size_t count);
 int usleep(unsigned int usec);
+struct timeval { int32_t tv_sec; int32_t tv_usec; };
+int gettimeofday(struct timeval *tv, void *tz);
 struct input_event { int32_t sec; int32_t usec; uint16_t type; uint16_t code; int32_t value; };
 struct input_absinfo { int32_t value, minimum, maximum, fuzz, flat, resolution; };
 ]]
@@ -150,7 +152,7 @@ while i <= #arg do
 end
 local cmd = args[1]
 if not cmd then
-    io.stderr:write("usage: touch.lua [flags] probe | tap X Y | longpress X Y [ms] | swipe X1 Y1 X2 Y2 [ms]\n")
+    io.stderr:write("usage: touch.lua [flags] probe | tap X Y | longpress X Y [ms] | swipe X1 Y1 X2 Y2 [ms] | drag X1 Y1 X2 Y2 [hold_ms] [ms]\n")
     os.exit(2)
 end
 
@@ -197,7 +199,12 @@ end
 
 local ev = ffi.new("struct input_event")
 local EV_SIZE = ffi.sizeof("struct input_event") -- 16 on 32-bit ARM
+local tv = ffi.new("struct timeval")
 local function emit(type_, code, value)
+    -- KOReader times taps, holds and double taps from these stamps; a zero
+    -- stamp makes every tap look like a double tap of the previous one.
+    C.gettimeofday(tv, nil)
+    ev.sec, ev.usec = tv.tv_sec, tv.tv_usec
     ev.type, ev.code, ev.value = type_, code, value
     if C.write(dev.fd, ev, EV_SIZE) ~= EV_SIZE then error("write to " .. dev.path .. " failed") end
 end
@@ -277,6 +284,22 @@ elseif cmd == "swipe" then
     sleepMs(20)
     up()
     print(string.format("ok swipe %d,%d -> %d,%d on %s (%d ms, %d steps)", x1, y1, x2, y2, dev.path, ms, steps))
+elseif cmd == "drag" then
+    -- Hold still first (KOReader's "hold"), then pan: selects text in a book.
+    local x1, y1, x2, y2 = num(2, "X1"), num(3, "Y1"), num(4, "X2"), num(5, "Y2")
+    local hold = tonumber(args[6]) or 900
+    local ms = tonumber(args[7]) or 400
+    local steps = math.max(2, math.floor(ms / 16))
+    down(map(x1, y1))
+    sleepMs(hold)
+    for s = 1, steps do
+        sleepMs(ms / steps)
+        local t = s / steps
+        move(map(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t))
+    end
+    sleepMs(150)
+    up()
+    print(string.format("ok drag %d,%d -> %d,%d on %s (hold %d ms, pan %d ms)", x1, y1, x2, y2, dev.path, hold, ms))
 else
     error("unknown command " .. cmd)
 end

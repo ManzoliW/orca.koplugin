@@ -648,15 +648,15 @@ function Orca:startWatch()
             return
         end
         self:queue{
-            run = function(c) return c:listWorktrees() end,
-            done = function(worktrees, err)
-                if not worktrees then
+            run = function(c) return c:agentStates() end,
+            done = function(states, err)
+                if not states then
                     self.watch_failures = (self.watch_failures or 0) + 1
                     logger.dbg("Orca: watch failed:", err)
                     return
                 end
                 self.watch_failures = 0
-                self:checkWorkspaceChanges(worktrees)
+                self:checkAgentChanges(states)
             end,
         }
     end
@@ -670,31 +670,40 @@ function Orca:stopWatch()
     end
 end
 
-function Orca:checkWorkspaceChanges(worktrees)
+-- Workspace name from a worktree id ("<uuid>::<path>"), falling back to the tab title.
+local function workspaceName(status)
+    local path = str(status.worktree):match("::(.+)$")
+    if path then return basename(path) end
+    return str(status.title) ~= "" and status.title or _("a session")
+end
+
+function Orca:checkAgentChanges(states)
     local previous = self.watch_states
-    local current = {}
     local alerts = {}
-    for _, wt in ipairs(worktrees) do
-        local status = str(wt.status)
-        current[wt.worktreeId] = status
-        local before = previous and previous[wt.worktreeId]
-        local rank = stateInfo(status).rank
-        -- Only transitions into an interesting state, and only once per state.
-        if previous and before ~= status and rank <= 3 and status ~= "working" then
-            table.insert(alerts, wt)
+    for handle, status in pairs(states) do
+        local state = str(status.state)
+        local before = previous and previous[handle]
+        local rank = stateInfo(state).rank
+        -- A new permission prompt, or work that just finished (idle→done
+        -- flips happen on reconnects and are not news).
+        if previous and before ~= state
+                and (rank == 1 or (state == "done" and before == "working")) then
+            table.insert(alerts, { handle = handle, status = status, rank = rank })
         end
     end
+    local current = {}
+    for handle, status in pairs(states) do current[handle] = str(status.state) end
     self.watch_states = current
     if #alerts == 0 or self.notice then return end
 
-    table.sort(alerts, function(a, b) return stateInfo(a.status).rank < stateInfo(b.status).rank end)
-    local wt = alerts[1]
-    local info = stateInfo(wt.status)
-    local text = info.rank == 1
-        and T(_("Claude Code in %1 is waiting for you."), basename(wt.path))
-        or T(_("Claude Code in %1 has finished."), basename(wt.path))
+    table.sort(alerts, function(a, b) return a.rank < b.rank end)
+    local alert = alerts[1]
+    local name = workspaceName(alert.status)
+    local text = alert.rank == 1
+        and T(_("Claude Code in %1 is waiting for you."), name)
+        or T(_("Claude Code in %1 has finished."), name)
     if #alerts > 1 then
-        text = text .. "\n" .. T(_("(+%1 more workspaces changed)"), #alerts - 1)
+        text = text .. "\n" .. T(_("(+%1 more sessions changed)"), #alerts - 1)
     end
     self.notice = ConfirmBox:new{
         text = text,
@@ -702,7 +711,7 @@ function Orca:checkWorkspaceChanges(worktrees)
         cancel_text = _("Later"),
         ok_callback = function()
             self.notice = nil
-            self:openWorkspaces(nil, wt)
+            self:openSession({ handle = alert.handle, title = alert.status.title })
         end,
         cancel_callback = function() self.notice = nil end,
         dismissable = true,

@@ -435,7 +435,8 @@ def send_ssh(path, host, user, dest, timeout=10):
     if r.returncode != 0:
         return None, (r.stderr.strip() or "ssh failed (%d)" % r.returncode)
     remote = "%s/%s" % (dest.rstrip("/"), os.path.basename(path))
-    r = subprocess.run(["scp"] + common + [path, "%s:'%s'" % (target, remote)],
+    # No shell quoting: scp speaks SFTP, so the remote path is taken literally.
+    r = subprocess.run(["scp"] + common + [path, "%s:%s" % (target, remote)],
                        capture_output=True, text=True)
     if r.returncode != 0:
         return None, (r.stderr.strip() or "scp failed (%d)" % r.returncode)
