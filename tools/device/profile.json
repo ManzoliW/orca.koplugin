@@ -1,0 +1,20 @@
+{
+  "device": "/dev/input/event2",
+  "swap_xy": false,
+  "invert_x": false,
+  "invert_y": false,
+  "fb_width": 600,
+  "fb_height": 800,
+  "invert_gray": false,
+  "rotate": 0,
+  "keys": {
+    "menu": [
+      0.5,
+      0.03
+    ],
+    "back": [
+      0.05,
+      0.03
+    ]
+  }
+}
