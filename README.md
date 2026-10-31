@@ -80,15 +80,11 @@ Opening a workspace shows these rows above its terminals:
 
 With **Claude status on the sleep screen** on, the plugin keeps KOReader's
 sleep message up to date while the Kindle is awake, so the sleeping Kindle
-shows something like:
+shows Claude's usage and your sessions:
 
-```
-Claude · 11:52
-5h: 24% used · resets 4h 27m
-Week: 4% used · resets Sat 09:59
-194M tokens: KOReader and Tai…
-working: faxa, kindle
-```
+<p>
+  <img src="docs/screenshots/sleep.png" width="260" alt="Claude status on the sleep screen">
+</p>
 
 The limits are Claude's own 5-hour and weekly limits, as Orca's accounts
 screen shows them, followed by the most recent conversation and its total
