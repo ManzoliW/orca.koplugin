@@ -82,6 +82,9 @@ local function now()
     return time.to_s(time.now())
 end
 
+require("orcaui.workspace")(Orca, { str = str, basename = basename, now = now })
+require("orcaui.conversations")(Orca, { str = str, basename = basename })
+
 local function stripAnsi(s)
     return (s:gsub("\27%][^\7\27]*\7", "")      -- OSC ... BEL
              :gsub("\27%][^\27]*\27\\", "")     -- OSC ... ST
@@ -117,6 +120,9 @@ function Orca:init()
         logger.err("Orca: cannot load libtweetnacl:", err)
         self.load_error = tostring(err)
     end
+    -- The browser's default action; other callers pass their own picker and
+    -- get a plain list without the create/manage rows.
+    self.open_default = function(term) self:openSession(term) end
     self.ui.menu:registerToMainMenu(self)
     if self.ui.highlight then
         self.ui.highlight:addToHighlightDialog("13_orca", function(this)
@@ -132,11 +138,13 @@ function Orca:init()
         end)
     end
     self:startWatch()
+    self:startSleepStatus()
 end
 
 function Orca:onCloseWidget()
     self:stopTicker()
     self:stopWatch()
+    self:stopSleepStatus()
     if self.client then self.client:close() end
 end
 
@@ -145,10 +153,12 @@ function Orca:onSuspend()
     self:stopWatch()
 end
 
+-- watch_states survives the sleep, so the first poll after waking reports
+-- what finished or started waiting while the Kindle was asleep.
 function Orca:onResume()
     self:resetClient()
-    self.watch_states = nil
     self:startWatch()
+    self:startSleepStatus()
 end
 
 -- Settings ---------------------------------------------------------------------
@@ -259,6 +269,14 @@ function Orca:addToMainMenu(menu_items)
                 callback = function() self:openWorkspaces() end,
             },
             {
+                text = _("Start something new…"),
+                help_text = _("New workspace with Claude, work on a GitHub issue or PR, clone a repository, or create an empty project."),
+                enabled_func = function() return self.settings:has("pairing_url") end,
+                callback = function()
+                    NetworkMgr:runWhenOnline(function() self:showMenu(_("Start something new"), self:newItems()) end)
+                end,
+            },
+            {
                 text = _("Notify me while I read"),
                 help_text = _("Checks your workspaces in the background and pops up when a Claude Code session needs a decision or finishes."),
                 checked_func = function() return self.settings:nilOrTrue("watch_enabled") end,
@@ -271,6 +289,27 @@ function Orca:addToMainMenu(menu_items)
             {
                 text_func = function() return T(_("Check every %1 s"), self:watchInterval()) end,
                 sub_item_table = choice("watch_interval", { 15, 30, 60, 120 }, 30, _("%1 seconds")),
+            },
+            {
+                text = _("Claude status on the sleep screen"),
+                help_text = _("While the Kindle is awake, keeps the sleep-screen message updated with Claude's session and weekly usage limits and which sessions need you. Turning it off restores your previous message."),
+                checked_func = function() return self.settings:isTrue("sleep_status") end,
+                callback = function() self:setSleepStatus(not self.settings:isTrue("sleep_status")) end,
+            },
+            {
+                text_func = function() return T(_("Agent for new sessions: %1"), self:agentId()) end,
+                sub_item_table = choice("agent", { "claude", "codex", "gemini", "opencode" }, "claude", "%1"),
+            },
+            {
+                text = _("Recent conversations"),
+                help_text = _("Your latest agent conversations with their size in tokens. Read one as a book or continue it on the desktop."),
+                enabled_func = function() return self.settings:has("pairing_url") end,
+                callback = function() self:openConversations() end,
+            },
+            {
+                text = _("Orca stats"),
+                enabled_func = function() return self.settings:has("pairing_url") end,
+                callback = function() self:showStats() end,
             },
             {
                 text = _("Display"),
@@ -519,22 +558,26 @@ end
 -- on_pick(term, wt) runs when a terminal is chosen; default opens the session.
 -- With `jump_to`, the browser opens straight on that workspace's terminals.
 function Orca:openWorkspaces(on_pick, jump_to)
-    on_pick = on_pick or function(term) self:openSession(term) end
+    on_pick = on_pick or self.open_default
     local title = self.pick_title or _("Orca workspaces")
     self.pick_title = nil
     NetworkMgr:runWhenOnline(function()
         self:loadWorkspaces(on_pick, function(items)
-            self.menu = Menu:new{
-                title = title,
-                item_table = items,
-                covers_fullscreen = true,
-                is_borderless = true,
-                is_popout = false,
-            }
-            UIManager:show(self.menu)
+            self:showMenu(title, items)
             if jump_to then self:openTerminals(jump_to, on_pick) end
         end)
     end)
+end
+
+function Orca:showMenu(title, items)
+    self.menu = Menu:new{
+        title = title,
+        item_table = items,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+    }
+    UIManager:show(self.menu)
 end
 
 function Orca:loadWorkspaces(on_pick, on_items)
@@ -559,6 +602,12 @@ function Orca:workspaceItems(worktrees, on_pick)
             self:loadWorkspaces(on_pick, function(fresh) self.menu:switchItemTable(nil, fresh) end)
         end },
     }
+    if on_pick == self.open_default then
+        table.insert(items, { text = _("+ Start something new…"), callback = function()
+            self:pushMenu(_("Start something new"), self:newItems())
+        end })
+        table.insert(items, { text = _("Recent conversations…"), callback = function() self:openConversations() end })
+    end
     for _, wt in ipairs(worktrees) do
         local count = tonumber(wt.liveTerminalCount) or 0
         local branch = str(wt.branch):gsub("^refs/heads/", "")
@@ -595,6 +644,9 @@ function Orca:terminalItems(wt, terminals, states, on_pick)
             self:loadTerminals(wt, on_pick, function(fresh) self.menu:switchItemTable(nil, fresh) end)
         end },
     }
+    if on_pick == self.open_default then
+        for _, item in ipairs(self:workspaceActionItems(wt)) do table.insert(items, item) end
+    end
     for _, term in ipairs(terminals) do
         local title = str(term.title) ~= "" and str(term.title) or str(term.handle)
         local agent = states[term.handle]
@@ -677,6 +729,22 @@ local function workspaceName(status)
     return str(status.title) ~= "" and status.title or _("a session")
 end
 
+-- The last few non-empty lines of a screen: where an agent's question is.
+-- Skips logo art (block elements, U+2580–259F) and the footer hint.
+local PROMPT_LINES = 9
+local function promptExcerpt(lines)
+    local out = {}
+    for i = #(lines or {}), 1, -1 do
+        local line = str(lines[i]):gsub("^%s*│%s?", ""):gsub("%s*│%s*$", ""):gsub("%s+$", "")
+        if line:match("[%w%?]") and not line:find("\226\150[\128-\159]")
+                and not line:match("^%s*Enter to select") then
+            table.insert(out, 1, line)
+            if #out == PROMPT_LINES then break end
+        end
+    end
+    return table.concat(out, "\n")
+end
+
 function Orca:checkAgentChanges(states)
     local previous = self.watch_states
     local alerts = {}
@@ -705,6 +773,33 @@ function Orca:checkAgentChanges(states)
     if #alerts > 1 then
         text = text .. "\n" .. T(_("(+%1 more sessions changed)"), #alerts - 1)
     end
+    if alert.rank ~= 1 then return self:showNotice(alert, text) end
+    -- A prompt: show what it asks, with answer buttons, so it can be answered
+    -- from the popup.
+    self.notice = true -- claimed while the screen is read
+    self:queue{
+        run = function(c) return c:readTerminal(alert.handle, true) end,
+        done = function(term)
+            local question = promptExcerpt(term and term.tail)
+            self:showNotice(alert, question ~= "" and text .. "\n\n" .. question or text, true)
+        end,
+    }
+end
+
+
+function Orca:showNotice(alert, text, answerable)
+    local function answer(keys, label)
+        return { text = label or keys, callback = function()
+            self.notice = nil
+            self:queue{
+                run = function(c) return c:sendText(alert.handle, keys, false) end,
+                done = function(r, err)
+                    if not r then return self:showError(err) end
+                    UIManager:show(InfoMessage:new{ text = T(_("Sent %1."), label or keys), timeout = 2 })
+                end,
+            }
+        end }
+    end
     self.notice = ConfirmBox:new{
         text = text,
         ok_text = _("Open"),
@@ -714,6 +809,8 @@ function Orca:checkAgentChanges(states)
             self:openSession({ handle = alert.handle, title = alert.status.title })
         end,
         cancel_callback = function() self.notice = nil end,
+        other_buttons = answerable and { { answer("1"), answer("2"), answer("3"), answer(KEY_ESC, "Esc") } } or nil,
+        other_buttons_first = true,
         dismissable = true,
     }
     UIManager:show(self.notice)
@@ -1094,5 +1191,7 @@ function Orca:stopTicker()
         self.ticker = nil
     end
 end
+
+require("orcaui.sleepscreen")(Orca, { str = str, stateInfo = stateInfo, workspaceName = workspaceName })
 
 return Orca

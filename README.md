@@ -34,12 +34,76 @@ for most: `1 2 3` for choices, `Esc`, `Ctrl-C`, arrows, `Tab`/`⇧Tab`
 (mode switching), `⏎`, and **Type…** for free text. With live updates on, the
 screen refreshes when the session prints something.
 
+### Start something new
+
+**+ Start something new** at the top of the workspace list (also in
+Tools → Orca) gives four options:
+
+- **New workspace with Claude:** pick a project, say what Claude should do,
+  and the workspace opens with Claude already working on it.
+- **From a GitHub issue or PR:** browse or search the project's open issues and
+  pull requests, tap one, and Claude starts in a workspace linked to it. For a
+  PR, the workspace checks out the PR's branch.
+- **Clone from GitHub:** type `owner/repo` or a URL. It's cloned on the desktop
+  and added to Orca, and you watch the progress in a terminal.
+- **New empty project:** creates a folder with a git repository (and an empty
+  first commit) and adds it to Orca.
+
+Orca doesn't let phones clone or add projects directly. For those two, the
+plugin runs `git` and the `orca` CLI in a desktop terminal. New projects go
+next to your existing ones; change the folder with **Folder…**.
+
+### Work inside a workspace
+
+Opening a workspace shows these rows above its terminals:
+
+- **+ New Claude session** (with an optional first prompt) and **+ New shell**.
+- **Git:** branch and ahead/behind, the changed files (tap one for its diff),
+  **Commit all** (with a message drafted by the desktop's agent, which you can
+  edit) and **Commit & push**, **Push**, **Pull**, **Open a pull request**
+  (normal or draft), and **Read all changes as a book**, which opens every diff
+  as one document in KOReader.
+- **Files:** browse the checkout and read any file. **Open as book** saves it
+  to `documents/Claude/`; **Ask Claude…** sends a question about it to a session.
+- **Workspace:** put it to sleep, or remove it (the branch is kept).
+
+### Claude status on the sleep screen
+
+With **Claude status on the sleep screen** on, the plugin keeps KOReader's
+sleep message up to date while the Kindle is awake, so the sleeping Kindle
+shows something like:
+
+```
+Claude · 11:52
+5h: 24% used · resets 4h 27m
+Week: 4% used · resets Sat 09:59
+Last: KOReader and Tailscal… · 173M tokens
+working: faxa, kindle
+```
+
+The limits are Claude's own 5-hour and weekly limits, as Orca's accounts
+screen shows them; **Last** is the most recent conversation and its total
+tokens. Turning the option off restores your previous sleep message.
+**Orca stats** in the same menu shows agents started, pull requests and total
+agent time.
+
+### Recent conversations
+
+**Recent conversations** (in the menu and at the top of the workspace list)
+lists your latest agent conversations across all projects, with their size in
+tokens. Open one to see its latest messages, read them as a book, or
+**Continue on desktop**, which runs `claude --resume` in that project's
+workspace and opens it on the Kindle.
+
 ### Get notified while you read
 
 With **Notify me while I read** on, the plugin checks your sessions in the
 background (every 30 s by default). When one hits a permission prompt or
-finishes its work, a popup appears over your book. Tap **Open** to go straight
-to that session.
+finishes its work, a popup appears over your book. For a prompt, the popup
+shows the question itself with **1 2 3 Esc** buttons, so you can answer
+without leaving the book; **Open** goes straight to that session. When the
+Kindle wakes up, it also tells you what finished or
+started waiting while it was asleep.
 
 <p>
   <img src="docs/screenshots/menu.png" width="260" alt="Orca settings menu in KOReader">
@@ -141,10 +205,11 @@ Kindle (KOReader)                                   PC
 | Path | What |
 | --- | --- |
 | `orca.koplugin/` | KOReader plugin: sessions, notifications, Send to Claude |
+| `orca.koplugin/orcaui/` | New workspaces, clone, git, files (`workspace.lua`); recent conversations; sleep screen; line diff |
 | `tailscale.koplugin/` | Tailscale plugin, patched for kernels without TUN; autostart; port forwards |
 | `native/tweetnacl/` | NaCl cross-build for armv7 (`build.sh`, needs Zig) |
 | `tools/` | PC side: `kindlectl.py` (screenshot/tap over SSH), `send_to_kindle.py`, `pull_notes.py` |
-| `tests/` | Protocol tests, run on the Kindle with KOReader's `luajit` |
+| `tests/` | Protocol tests, run on the Kindle with KOReader's `luajit`; `rpc_probe.lua` calls every RPC the menus use against the real desktop; `pc_ui_test.lua` runs the menus on a PC against a fake Orca |
 | `.claude/skills/` | `send-to-kindle` skill for Claude Code |
 
 ## Tested on
