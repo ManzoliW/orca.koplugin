@@ -16,6 +16,8 @@ Settings.DEFAULTS = {
     font_size = 14,                -- terminal font, px
     refresh_interval = 10,         -- s between refreshes when live updates are off
     use_proxy = true,              -- reach the desktop through Tailscale's SOCKS5 proxy
+    -- Without defaults: pairing_url (credential), host_override, client_id,
+    -- projects_dir, last_terminal, notify_watermark {seq, epoch}, saved_screensaver.
 }
 
 function Settings.new(store)
