@@ -56,6 +56,10 @@ function App:explain(err)
             or e:match("not connected") or e:match("closed") or e:match("unreachable") then
         return T(_("Can't reach your PC. Check that Orca is running and Tailscale is on.\n\n(%1)"), e)
     end
+    -- The desktop keeps some methods (automations, for one) from mobile clients.
+    if e:match("^forbidden") or e:match("not available to mobile") then
+        return _("Orca doesn't let phones or the Kindle do this. Use Orca on your PC.")
+    end
     if e:match("authentication") then
         return _("Orca rejected this Kindle. The pairing may have been revoked: pair again in Tools → Orca → Pairing.")
     end

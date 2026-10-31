@@ -158,9 +158,11 @@ def fetch_fb(dev):
         "cd /sys/class/graphics/fb0 && "
         "echo virtual_size=$(cat virtual_size); echo bpp=$(cat bits_per_pixel); "
         "echo stride=$(cat stride 2>/dev/null); echo modes=$(head -1 modes 2>/dev/null); "
-        "echo fbset=$(fbset 2>/dev/null | tr '\\n' ' '); echo __FB__; cat /dev/fb0")
+        "echo fbset=$(fbset 2>/dev/null | tr '\\n' ' '); echo __FB__; gzip -1 -c /dev/fb0")
     out = dev.run(header_cmd, timeout=180)
     head, _, data = out.partition(b"__FB__\n")
+    # Compressed on the device: mostly white e-ink pages shrink a lot.
+    data = zlib.decompress(data, 16 + zlib.MAX_WBITS)
     info = {}
     for line in head.decode("utf-8", "replace").splitlines():
         k, _, v = line.partition("=")

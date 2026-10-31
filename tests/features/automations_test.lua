@@ -43,6 +43,13 @@ H.test("schedules read like a person wrote them", function()
     H.eq(A.schedule("FREQ=MONTHLY;BYMONTHDAY=1"), "FREQ=MONTHLY;BYMONTHDAY=1")
 end)
 
+H.test("a desktop that keeps automations from mobile gets a plain answer", function()
+    local _, t = opened{ ["automation.list"] = function()
+        return nil, "forbidden: Method 'automation.list' is not available to mobile clients"
+    end }
+    H.has(t.top().empty, "Use Orca on your PC")
+end)
+
 H.test("list shows schedule, next run and on/off", function()
     local _, t = opened()
     H.eq(t.top().title, "Automations")

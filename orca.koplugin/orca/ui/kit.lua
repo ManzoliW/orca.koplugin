@@ -92,7 +92,9 @@ end
 --]]
 function kit.row(row, width)
     local pad = style.space.l
-    local glyph_w = row.glyph and style.space.xl or 0
+    local glyph_widget = row.glyph and text(row.glyph, "row", { bold = row.bold, dim = row.dim })
+    -- Status glyphs fit the column; wider ones (git's "M", "??") get room to breathe.
+    local glyph_w = glyph_widget and math.max(style.space.xl, glyph_widget:getSize().w + style.space.s) or 0
     local accessory = row.chevron and style.glyph.chevron or nil
     local accessory_w = accessory and style.space.l or 0
 
@@ -119,10 +121,10 @@ function kit.row(row, width)
     local h = math.max(min_h, column:getSize().h + 2 * style.space.s)
 
     local line = HorizontalGroup:new{ align = "center", HorizontalSpan:new{ width = pad } }
-    if row.glyph then
+    if glyph_widget then
         table.insert(line, LeftContainer:new{
             dimen = Geom:new{ w = glyph_w, h = h },
-            text(row.glyph, "row", { bold = row.bold, dim = row.dim }),
+            glyph_widget,
         })
     end
     table.insert(line, LeftContainer:new{ dimen = Geom:new{ w = text_w, h = h }, column })
@@ -177,11 +179,12 @@ function kit.note(t, width)
     }
 end
 
--- A borderless glyph button for title bars.
-function kit.iconButton(glyph, callback, size)
+-- A borderless glyph button for title bars. enabled = false draws it grayed out.
+function kit.iconButton(glyph, callback, size, enabled)
     return Button:new{
         text = glyph,
         callback = callback,
+        enabled = enabled ~= false,
         bordersize = 0,
         width = size or style.min_target,
         height = size or style.min_target,

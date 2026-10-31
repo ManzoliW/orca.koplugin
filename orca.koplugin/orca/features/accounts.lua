@@ -47,8 +47,11 @@ function Accounts:usageRows(limits)
     if type(limits) ~= "table" then return rows end
     local session = usageRow(_("5-hour limit"), limits.session)
     local weekly = usageRow(_("Weekly limit"), limits.weekly)
+    -- Some plans have a separate weekly limit for the Fable model.
+    local fable = usageRow(_("Weekly Fable limit"), limits.fableWeekly)
     if session then table.insert(rows, session) end
     if weekly then table.insert(rows, weekly) end
+    if fable then table.insert(rows, fable) end
     if #rows == 0 and util.str(limits.error) ~= "" then
         table.insert(rows, { glyph = style.glyph.error, title = _("Usage unavailable"),
                              subtitle = util.str(limits.error) })

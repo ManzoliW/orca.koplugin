@@ -141,11 +141,11 @@ function Window:render()
         local nav_w = style.min_target * 2
         footer = HorizontalGroup:new{
             align = "center",
-            kit.iconButton(style.glyph.back, function() self:onPrevPage() end, nav_w),
+            kit.iconButton(style.glyph.back, function() self:onPrevPage() end, nav_w, spec.page > 1),
             HorizontalSpan:new{ width = style.space.xl },
             kit.text(T(_("%1 of %2"), spec.page, #pages), "detail", { dim = true }),
             HorizontalSpan:new{ width = style.space.xl },
-            kit.iconButton(style.glyph.chevron, function() self:onNextPage() end, nav_w),
+            kit.iconButton(style.glyph.chevron, function() self:onNextPage() end, nav_w, spec.page < #pages),
         }
     end
 

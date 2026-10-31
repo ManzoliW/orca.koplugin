@@ -16,8 +16,9 @@ captured over SSH with [`tools/kindlectl.py`](tools/README.md).
 
 ### Browse workspaces and sessions
 
-Workspaces are sorted by what needs attention first (**needs you** → working →
-done), and each terminal shows its agent's state.
+Workspaces are grouped by what needs attention first (**● Needs you**,
+**◐ Working**, **○ Done**), and each session shows its agent's state. Tap a
+row to go in, **‹** to go back, swipe or use the page buttons to turn pages.
 
 <p>
   <img src="docs/screenshots/workspaces.png" width="260" alt="Workspace list">
@@ -30,13 +31,13 @@ done), and each terminal shows its agent's state.
 The session view shows the terminal's current screen. The desktop resizes that
 terminal to the Kindle's width while you're looking at it, so nothing is cut
 off, and restores the size when you leave. Buttons cover what Claude Code asks
-for most: `1 2 3` for choices, `Esc`, `Ctrl-C`, arrows, `Tab`/`⇧Tab`
-(mode switching), `⏎`, and **Type…** for free text. With live updates on, the
+for most: `1 2 3` for choices, `Esc`, `Ctrl-C`, arrows, `Tab`/`S-Tab`
+(mode switching), `Enter`, and **Type…** for free text. With live updates on, the
 screen refreshes when the session prints something.
 
 ### Start something new
 
-**+ Start something new** at the top of the workspace list (also in
+**+** in the title bar of the workspace list (also **Start something new…** in
 Tools → Orca) gives four options:
 
 - **New workspace with Claude:** pick a project, say what Claude should do,
@@ -55,9 +56,10 @@ next to your existing ones; change the folder with **Folder…**.
 
 ### Work inside a workspace
 
-Opening a workspace shows these rows above its terminals:
+Opening a workspace shows its sessions, then:
 
-- **+ New Claude session** (with an optional first prompt) and **+ New shell**.
+- **+** in the title bar: a new Claude session (with an optional first prompt)
+  or a shell.
 - **Git:** branch and ahead/behind, the changed files (tap one for its diff),
   **Commit all** (with a message drafted by the desktop's agent, which you can
   edit) and **Commit & push**, **Push**, **Pull**, **Open a pull request**
@@ -70,7 +72,8 @@ Opening a workspace shows these rows above its terminals:
   (squash, merge commit or rebase).
 - **Files:** browse the checkout and read any file. **Open as book** saves it
   to `documents/Claude/`; **Ask Claude…** sends a question about it to a session.
-- **Workspace:** put it to sleep, or remove it (the branch is kept).
+- **Sleep or remove…:** put the workspace to sleep, or remove it (the branch
+  is kept).
 
 <p>
   <img src="docs/screenshots/git.png" width="260" alt="Git screen of a workspace">
@@ -89,12 +92,26 @@ shows Claude's usage and your sessions:
 The limits are Claude's own 5-hour and weekly limits, as Orca's accounts
 screen shows them, followed by the most recent conversation and its total
 tokens. Turning the option off restores your previous sleep message.
-**Orca stats** in the same menu shows agents started, pull requests and total
-agent time.
+
+### Account and usage
+
+**Account and usage** (last page of the workspace list) shows the 5-hour and
+weekly limits with when they reset, and Orca's totals: agents started, pull
+requests and agent time. When you have more than one Claude account in Orca,
+it lists them too: tap one to make new sessions use it (or go back to
+**System default**, the login on your PC).
+
+<p>
+  <img src="docs/screenshots/account.png" width="260" alt="Account and usage screen">
+</p>
+
+**Automations** lists Orca's scheduled agent runs, with **Run now** and
+on/off, for desktops that allow it. Current Orca builds keep automations from
+mobile clients; the screen then says so.
 
 ### Recent conversations
 
-**Recent conversations** (in the menu and at the top of the workspace list)
+**Recent conversations** (last page of the workspace list)
 lists your latest agent conversations across all projects, with their size in
 tokens. Open one to see its latest messages, read them as a book, or
 **Continue on desktop**, which runs `claude --resume` in that project's
@@ -102,13 +119,14 @@ workspace and opens it on the Kindle.
 
 ### Get notified while you read
 
-With **Notify me while I read** on, the plugin checks your sessions in the
-background (every 30 s by default). When one hits a permission prompt or
-finishes its work, a popup appears over your book. For a prompt, the popup
+With **Notify me while I read** on, the plugin subscribes to Orca's
+notification stream, so a popup appears over your book the moment a session
+hits a permission prompt or finishes its work (when the stream isn't
+available it falls back to checking every 30 s). For a prompt, the popup
 shows the question itself with **1 2 3 Esc** buttons, so you can answer
 without leaving the book; **Open** goes straight to that session. When the
-Kindle wakes up, it also tells you what finished or
-started waiting while it was asleep.
+Kindle wakes up, it catches up on what finished or started waiting while it
+was asleep.
 
 <p>
   <img src="docs/screenshots/notify-answer.png" width="260" alt="Popup with Claude's question and answer buttons">
@@ -121,7 +139,7 @@ started waiting while it was asleep.
 ### Send a passage to Claude
 
 Select text in any book and the highlight menu gets a **Send to Claude**
-button. Pick a preset (**Explain**, **Context**, **Save note**) or type your
+button (named after the agent you picked for new sessions). Pick a preset (**Explain**, **Context**, **Save note**) or type your
 own question. The passage is sent to your last-used session along with the
 book title, author and chapter, and the session view opens so you can read the
 answer.
@@ -172,7 +190,9 @@ Tailscale on both the Kindle and the PC, and Orca running on the PC.
 
 1. **Install KOReader** via KPM: `;kpm install koreader`.
 2. **Copy both plugins** into `koreader/plugins/` on the Kindle:
-   `tailscale.koplugin/` and `orca.koplugin/`.
+   `tailscale.koplugin/` and `orca.koplugin/`. Each
+   [release](https://github.com/ManzoliW/orca.koplugin/releases) has a zip of
+   each plugin (and `SHA256SUMS`); unzip them into `koreader/plugins/`.
 3. **Start Tailscale on the Kindle**: KOReader → Network → Tailscale → Setup
    (auth key, binaries), then **Start Service and Connect**. It starts by
    itself with KOReader after that.
@@ -209,16 +229,21 @@ Kindle (KOReader)                                   PC
 - **No freezes**: network work runs in coroutines stepped by KOReader's UI
   loop, so the reader stays responsive while waiting on the network.
 
+The plugin's modules (core, API wrappers, UI kit, one file per feature) and
+the design rules for the e-ink UI are described in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Repository layout
 
 | Path | What |
 | --- | --- |
-| `orca.koplugin/` | KOReader plugin: sessions, notifications, Send to Claude |
-| `orca.koplugin/orcaui/` | New workspaces, clone, git, files (`workspace.lua`); recent conversations; sleep screen; line diff |
+| `orca.koplugin/` | KOReader plugin; `main.lua` only wires it together |
+| `orca.koplugin/orca/` | `core/` (settings, jobs, connection), `api/` (Orca RPC wrappers), `ui/` (e-ink UI kit), `features/` (one file per screen or behavior), `render/` (terminal text, diffs) |
+| `orca.koplugin/orcaclient/` | Orca mobile protocol: WebSocket, NaCl handshake, RPC and streams |
 | `tailscale.koplugin/` | Tailscale plugin, patched for kernels without TUN; autostart; port forwards |
 | `native/tweetnacl/` | NaCl cross-build for armv7 (`build.sh`, needs Zig) |
-| `tools/` | PC side: `kindlectl.py` (screenshot/tap over SSH), `send_to_kindle.py`, `pull_notes.py` |
-| `tests/` | Protocol tests, run on the Kindle with KOReader's `luajit`; `rpc_probe.lua` calls every RPC the menus use against the real desktop; `pc_ui_test.lua` runs the menus on a PC against a fake Orca |
+| `tools/` | PC side: `kindlectl.py` (screenshot/tap/deploy over SSH; set `KINDLE_HOST`), `send_to_kindle.py`, `pull_notes.py` |
+| `tests/` | `luajit tests/run.lua` runs every screen on a PC against a fake Orca and stubbed KOReader (also in CI); the other scripts run on the Kindle, and `rpc_probe.lua` calls the real desktop |
 | `.claude/skills/` | `send-to-kindle` skill for Claude Code |
 
 ## Tested on
@@ -227,3 +252,7 @@ Kindle Basic (KT4, 10th gen), firmware 5.18.1.1.1, KOReader 2026.07.1, Orca
 desktop on Windows 11. Other Kindles that run KOReader should work. The
 touch-injection tool (`kindlectl`) may need its profile adjusted on other
 models (see `tools/README.md`).
+
+## License
+
+[GPLv3](LICENSE), like KOReader.
