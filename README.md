@@ -72,6 +72,10 @@ Opening a workspace shows these rows above its terminals:
   to `documents/Claude/`; **Ask Claude…** sends a question about it to a session.
 - **Workspace:** put it to sleep, or remove it (the branch is kept).
 
+<p>
+  <img src="docs/screenshots/git.png" width="260" alt="Git screen of a workspace">
+</p>
+
 ### Claude status on the sleep screen
 
 With **Claude status on the sleep screen** on, the plugin keeps KOReader's
@@ -82,12 +86,12 @@ shows something like:
 Claude · 11:52
 5h: 24% used · resets 4h 27m
 Week: 4% used · resets Sat 09:59
-Last: KOReader and Tailscal… · 173M tokens
+194M tokens: KOReader and Tai…
 working: faxa, kindle
 ```
 
 The limits are Claude's own 5-hour and weekly limits, as Orca's accounts
-screen shows them; **Last** is the most recent conversation and its total
+screen shows them, followed by the most recent conversation and its total
 tokens. Turning the option off restores your previous sleep message.
 **Orca stats** in the same menu shows agents started, pull requests and total
 agent time.
@@ -109,6 +113,10 @@ shows the question itself with **1 2 3 Esc** buttons, so you can answer
 without leaving the book; **Open** goes straight to that session. When the
 Kindle wakes up, it also tells you what finished or
 started waiting while it was asleep.
+
+<p>
+  <img src="docs/screenshots/notify-answer.png" width="260" alt="Popup with Claude's question and answer buttons">
+</p>
 
 <p>
   <img src="docs/screenshots/menu.png" width="260" alt="Orca settings menu in KOReader">

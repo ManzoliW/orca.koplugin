@@ -69,8 +69,9 @@ return function(Orca, h)
         -- The conversation that ran last, and how big it has grown.
         if type(latest) == "table" then
             local name = h.str(latest.title)
-            if #name > 22 then name = name:sub(1, 21):gsub("[\128-\191]*$", ""):gsub("[\192-\255]$", "") .. "…" end
-            lines[#lines + 1] = T(_("Last: %1 · %2 tokens"), name, self.shortCount(latest.totalTokens))
+            -- About 31 characters fit on a line of the sleep message box.
+            if #name > 17 then name = name:sub(1, 16):gsub("[\128-\191]*$", ""):gsub("[\192-\255]$", "") .. "…" end
+            lines[#lines + 1] = T(_("%1 tokens: %2"), self.shortCount(latest.totalTokens), name)
         end
         local groups = {}
         for _i, status in pairs(states or {}) do
