@@ -109,7 +109,7 @@ function kit.row(row, width)
         face = row.mono and style.mono(style.size.row - 2) or nil,
     }))
     if row.subtitle and row.subtitle ~= "" then
-        table.insert(column, VerticalSpan:new{ width = style.space.xs / 2 })
+        table.insert(column, VerticalSpan:new{ width = math.floor(style.space.xs / 2) })
         table.insert(column, text(row.subtitle, "detail", {
             dim = true, max_width = text_w, truncate_left = row.truncate_left,
             face = row.mono and style.mono(style.size.detail - 2) or nil,
@@ -240,12 +240,13 @@ function kit.buttonRow(buttons, width, height)
     local group = HorizontalGroup:new{}
     for i, b in ipairs(buttons) do
         if i > 1 then table.insert(group, HorizontalSpan:new{ width = gap }) end
+        -- Button's height is its label's: padding and border come on top.
         local button = Button:new{
             text = b.text,
             callback = b.callback,
             enabled = b.enabled ~= false,
             width = w,
-            height = height or style.button_height,
+            height = (height or style.button_height) - 2 * (style.space.xs + style.border),
             radius = style.radius,
             bordersize = style.border,
             background = b.primary and style.color.text or nil,
@@ -257,6 +258,8 @@ function kit.buttonRow(buttons, width, height)
         -- Button always draws black text; a filled button needs it white.
         if b.primary and button.label_widget then
             button.label_widget.fgcolor = style.color.inverse
+            -- A long label becomes a TextBoxWidget, pre-rendered black on black.
+            if button.label_widget.update then button.label_widget:update() end
         end
         table.insert(group, button)
     end

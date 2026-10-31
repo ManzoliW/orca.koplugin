@@ -149,14 +149,15 @@ function Window:render()
         }
     end
 
+    -- FrameContainer's width/height don't count in getSize(): pad the body
+    -- ourselves so the footer sits at the bottom.
+    local filler = body_h - body:getSize().h
+    if filler > 0 then table.insert(body, VerticalSpan:new{ width = filler }) end
+
     self[1][1] = VerticalGroup:new{
         align = "left",
         title,
-        FrameContainer:new{
-            bordersize = 0, padding = 0,
-            width = width, height = body_h,
-            body,
-        },
+        body,
         CenterContainer:new{ dimen = Geom:new{ w = width, h = footer_h }, footer },
     }
     UIManager:setDirty(self, function() return "ui", self.dimen end)

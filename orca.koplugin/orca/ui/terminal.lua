@@ -35,12 +35,13 @@ local style = require("orca.ui.style")
 local FLASH_EVERY = 6
 
 -- Key bar rows: id is what on_key receives. Esc and Ctrl-C sit on another
--- row than ⏎ so a slip doesn't cancel what you meant to confirm.
+-- row than Enter so a slip doesn't cancel what you meant to confirm.
+-- Labels stay ASCII/basic arrows: ⇧ and ⏎ aren't sure to be in the UI fonts.
 local KEYS = {
     { { id = "1", text = "1" }, { id = "2", text = "2" }, { id = "3", text = "3" },
       { id = "esc", text = "Esc" }, { id = "ctrl-c", text = "Ctrl-C" } },
     { { id = "up", text = "↑" }, { id = "down", text = "↓" }, { id = "tab", text = "Tab" },
-      { id = "shift-tab", text = "⇧Tab" }, { id = "enter", text = "⏎" } },
+      { id = "shift-tab", text = "S-Tab" }, { id = "enter", text = "Enter" } },
     { { id = "type", text = _("Type…"), primary = true } },
 }
 

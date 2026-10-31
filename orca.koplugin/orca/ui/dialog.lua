@@ -89,7 +89,7 @@ function dialog.card(opts)
     local width = opts.width or cardWidth()
     local inner = width - 2 * style.space.l
     local content = VerticalGroup:new{ align = "left" }
-    local card
+    local card, scroll
 
     if opts.title and opts.title ~= "" then
         table.insert(content, TextBoxWidget:new{
@@ -110,9 +110,10 @@ function dialog.card(opts)
             box = ScrollTextWidget:new{
                 text = opts.mono, face = style.mono(15), width = inner - 2 * style.space.s, height = max_h,
             }
+            scroll = box
         end
         table.insert(content, FrameContainer:new{
-            bordersize = style.line, color = style.color.line, radius = style.radius / 2,
+            bordersize = style.line, color = style.color.line, radius = math.floor(style.radius / 2),
             padding = style.space.s, box,
         })
         table.insert(content, VerticalSpan:new{ width = style.space.s })
@@ -145,6 +146,11 @@ function dialog.card(opts)
         timeout = opts.timeout,
         on_dismiss = opts.on_dismiss,
     }
+    if scroll then
+        -- Scrolling repaints (and indexes) its dialog; without one it crashes.
+        scroll.dialog = card
+        scroll.text_widget.dialog = card
+    end
     UIManager:show(card)
     return card
 end
