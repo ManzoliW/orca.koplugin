@@ -80,7 +80,7 @@ end
 -- ---------------------------------------------------------------------------
 -- forward.lua relays 127.0.0.1:LOCAL -> tailnet HOST:PORT through the SOCKS5
 -- proxy, so KOReader's OPDS/Calibre/HTTP features reach the PC. Setting
--- format: "8080:100.87.48.73:8080, 8081:otherhost:80".
+-- format: "8080:100.64.0.2:8080, 8081:otherhost:80".
 
 function Tailscale:forwardSpecs()
     local specs = {}
@@ -117,7 +117,7 @@ function Tailscale:editForwards()
     local dialog
     dialog = InputDialog:new{
         title = _("Local port forwards"),
-        description = _("LOCALPORT:HOST:PORT, comma separated. Then point KOReader at http://127.0.0.1:LOCALPORT.\nExample for a Calibre server on the PC: 8080:100.87.48.73:8080"),
+        description = _("LOCALPORT:HOST:PORT, comma separated. Then point KOReader at http://127.0.0.1:LOCALPORT.\nExample for a Calibre server on the PC: 8080:100.64.0.2:8080"),
         input = G_reader_settings:readSetting("tailscale_forwards") or "",
         buttons = {{
             { text = _("Cancel"), id = "close", callback = function() UIManager:close(dialog) end },

@@ -1,0 +1,32 @@
+name: Release
+
+# Push a tag like v2.0.0 to publish orca.koplugin.zip and tailscale.koplugin.zip.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LuaJIT
+        run: sudo apt-get update && sudo apt-get install -y luajit
+      - name: Test
+        run: luajit tests/run.lua
+      - name: Check the plugin version matches the tag
+        run: grep -q "version = \"${GITHUB_REF_NAME#v}\"" orca.koplugin/_meta.lua
+      - name: Package
+        run: |
+          zip -r orca.koplugin.zip orca.koplugin
+          zip -r tailscale.koplugin.zip tailscale.koplugin -x 'tailscale.koplugin/bin/*'
+          sha256sum orca.koplugin.zip tailscale.koplugin.zip > SHA256SUMS
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" orca.koplugin.zip tailscale.koplugin.zip SHA256SUMS \
+            --title "$GITHUB_REF_NAME" --generate-notes

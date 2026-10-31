@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LuaJIT
+        run: sudo apt-get update && sudo apt-get install -y luajit
+      - name: Syntax check
+        run: |
+          find orca.koplugin tailscale.koplugin tests -name '*.lua' -print0 |
+            xargs -0 -n1 luajit -bl > /dev/null
+      - name: PC tests
+        run: luajit tests/run.lua

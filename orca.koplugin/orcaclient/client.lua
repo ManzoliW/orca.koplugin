@@ -33,7 +33,8 @@ function Client.parsePairingUrl(url)
     return offer
 end
 
--- opts: offer, proxy = { host, port } (optional), host_override (optional)
+-- opts: offer, proxy = { host, port } (optional), host_override (optional),
+-- client_id (names this device in subscriptions; defaults to "kindle")
 function Client.new(opts)
     local host, port = opts.offer.endpoint:match("^wss?://%[?([^%]/]-)%]?:(%d+)")
     if not host then
@@ -45,8 +46,10 @@ function Client.new(opts)
         host = opts.host_override or host,
         port = tonumber(port),
         proxy = opts.proxy,
+        client_id = opts.client_id or "kindle",
         next_id = 0,
         events = {},
+        streams = {},
     }, Client)
 end
 
@@ -84,6 +87,9 @@ end
 
 function Client:connect()
     self:close()
+    -- The desktop drops a connection's subscriptions when its socket closes.
+    self.streams = {}
+    self.events = {}
     local ws, err = WebSocket.connect({
         host = self.host,
         port = self.port,
@@ -150,13 +156,17 @@ function Client:receiveMessage(timeout)
     return msg
 end
 
--- Sends an RPC request and waits for its final response. Streaming events for
--- other requests are queued in self.events. Returns result, or nil, err.
-function Client:call(method, params, timeout)
-    if not self:isConnected() then
-        local ok, err = self:connect()
-        if not ok then return nil, err end
+-- Queues a frame for an open stream; frames for streams we stopped are dropped.
+function Client:keep(msg)
+    if msg.id and self.streams[msg.id] then
+        table.insert(self.events, msg)
     end
+end
+
+-- Sends an RPC request and waits for its final response. Frames of open
+-- streams arriving meanwhile are queued for takeEvents. Returns result, or nil, err.
+function Client:call(method, params, timeout)
+    if not self:isConnected() then return nil, "not connected" end
     self.next_id = self.next_id + 1
     local id = "kindle-" .. self.next_id
     local request = { id = id, method = method, deviceToken = self.offer.deviceToken }
@@ -185,18 +195,16 @@ function Client:call(method, params, timeout)
             local e = type(msg.error) == "table" and msg.error or {}
             return nil, (e.code or "error") .. ": " .. tostring(e.message or "")
         else
-            table.insert(self.events, msg)
+            self:keep(msg)
         end
     end
 end
 
 -- Starts a streaming request and waits for its first event (or error).
--- Returns request id, first result; or nil, err. Later events land in self.events.
+-- Returns request id, first result; or nil, err. Later frames are queued for
+-- takeEvents until stopStream(id).
 function Client:startStream(method, params, timeout)
-    if not self:isConnected() then
-        local ok, err = self:connect()
-        if not ok then return nil, err end
-    end
+    if not self:isConnected() then return nil, "not connected" end
     self.next_id = self.next_id + 1
     local id = "kindle-" .. self.next_id
     local sent, err = self.ws:send(self:encrypt(json.encode({
@@ -216,15 +224,20 @@ function Client:startStream(method, params, timeout)
                 local e = type(msg.error) == "table" and msg.error or {}
                 return nil, (e.code or "error") .. ": " .. tostring(e.message or "")
             end
+            self.streams[id] = true
             return id, msg.result or {}
         else
-            table.insert(self.events, msg)
+            self:keep(msg)
         end
     end
     return nil, method .. " timed out"
 end
 
--- Removes and returns all queued events.
+function Client:stopStream(id)
+    self.streams[id] = nil
+end
+
+-- Removes and returns all queued stream frames ({id, result, ...}).
 function Client:takeEvents()
     local events = self.events
     self.events = {}
@@ -237,7 +250,7 @@ function Client:pump(timeout)
     while true do
         local msg = self:receiveMessage(timeout or 0)
         if not msg then return end
-        table.insert(self.events, msg)
+        self:keep(msg)
         timeout = 0
     end
 end
@@ -281,7 +294,7 @@ end
 -- (as a "desktop viewer", so desktop typing stays unlocked) and restores its
 -- own size when the stream ends. Returns subscription request id, or nil, err.
 function Client:subscribeTerminal(handle, viewport)
-    local params = { terminal = handle, client = { id = self.offer.deviceToken, type = "desktop" } }
+    local params = { terminal = handle, client = { id = self.client_id, type = "desktop" } }
     if viewport then
         params.viewport = viewport
     end
@@ -292,7 +305,7 @@ end
 function Client:claimViewport(handle, viewport)
     return self:call("terminal.updateViewport", {
         terminal = handle,
-        client = { id = self.offer.deviceToken, type = "desktop" },
+        client = { id = self.client_id, type = "desktop" },
         viewport = viewport,
         claim = true,
     })
@@ -300,8 +313,8 @@ end
 
 function Client:unsubscribeTerminal(handle, request_id)
     return self:call("terminal.unsubscribe", {
-        subscriptionId = handle .. ":" .. self.offer.deviceToken,
-        client = { id = self.offer.deviceToken },
+        subscriptionId = handle .. ":" .. self.client_id,
+        client = { id = self.client_id },
         requestId = request_id,
     })
 end

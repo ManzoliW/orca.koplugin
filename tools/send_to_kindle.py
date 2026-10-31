@@ -2,7 +2,7 @@
 """Send a document to the Kindle as an EPUB.
 
     send_to_kindle.py <file.md|file.txt|file.epub|file.pdf|-> [--title T] [--author A]
-                      [--dest /mnt/us/documents/Claude] [--host 100.93.172.106]
+                      [--dest /mnt/us/documents/Claude] [--host kindle]
                       [--user root] [--via auto|ssh|usb|none] [--out FILE]
 
 Markdown/plain text is converted to EPUB 3 with a small built-in converter
@@ -24,7 +24,7 @@ import tempfile
 import uuid
 import zipfile
 
-DEFAULT_HOST = "100.93.172.106"
+DEFAULT_HOST = os.environ.get("KINDLE_HOST", "kindle")  # Tailscale MagicDNS name or IP
 DEFAULT_USER = "root"
 DEFAULT_DEST = "/mnt/us/documents/Claude"
 USB_SUBDIR = os.path.join("documents", "Claude")

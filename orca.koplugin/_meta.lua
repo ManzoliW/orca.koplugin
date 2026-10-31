@@ -1,5 +1,7 @@
 local _ = require("gettext")
 return {
+    name = "orca",
     fullname = _("Orca"),
-    description = _([[View and drive your Orca desktop terminal sessions (e.g. Claude Code) from the Kindle, over Tailscale.]]),
+    version = "2.0.0",
+    description = _([[Drive your Orca desktop sessions (Claude Code, Codex…) from the Kindle over Tailscale: answer prompts, review git changes and pull requests, and get notified while you read.]]),
 }

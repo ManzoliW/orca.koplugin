@@ -39,10 +39,8 @@ REMOTE_TOUCH = "/mnt/us/orca-dev/tools/touch.lua"
 LUAJIT_DIR = "/mnt/us/koreader"
 PLUGIN_DEST = "/mnt/us/koreader/plugins/orca.koplugin"
 CRASH_LOG = "/mnt/us/koreader/crash.log"
-SHOTS_DIR = os.path.join(
-    os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
-    "Temp", "claude", "C--Users-William-orca-projects-kindle",
-    "9ff43156-23bc-477a-8316-03474ed4a803", "scratchpad", "shots")
+SHOTS_DIR = os.environ.get("KINDLE_SHOTS_DIR", os.path.join(os.getcwd(), "shots"))
+DEFAULT_HOST = os.environ.get("KINDLE_HOST", "kindle")  # Tailscale MagicDNS name or IP
 
 DEFAULT_PROFILE = {
     "device": None,          # /dev/input/eventN, or null to auto-detect
@@ -380,7 +378,7 @@ def cmd_sh(dev, prof, args):
 
 def main():
     ap = argparse.ArgumentParser(description="Drive the Kindle over SSH.")
-    ap.add_argument("--host", default="100.93.172.106")
+    ap.add_argument("--host", default=DEFAULT_HOST)
     ap.add_argument("--user", default="root")
     ap.add_argument("--port", type=int, default=22)
     sub = ap.add_subparsers(dest="cmd", required=True)

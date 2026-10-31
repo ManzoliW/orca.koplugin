@@ -1,6 +1,6 @@
 ---
 name: send-to-kindle
-description: Send a document, plan, diff or report to William's Kindle as an EPUB over Tailscale/USB, or pull KOReader highlights back
+description: Send a document, plan, diff or report to the user's Kindle as an EPUB over Tailscale/USB, or pull KOReader highlights back
 ---
 
 # Send to Kindle
@@ -12,14 +12,14 @@ Both scripts are stdlib Python; run them from any directory.
 ## Send a document
 
 ```
-python C:\Users\William\orca\projects\kindle\tools\send_to_kindle.py <file.md> [--title "..."]
+python tools/send_to_kindle.py <file.md> [--title "..."]
 ```
 
 - Accepts `.md` / `.txt` (converted to EPUB 3, split into chapters at `# ` headings),
   `.epub` / `.pdf` (sent as-is), or `-` for markdown on stdin.
 - Write long content to a `.md` file in the scratchpad first, then send it. Use
   `# ` headings for chapters; fenced code blocks and diffs wrap on e-ink.
-- Delivery is automatic: SSH over Tailscale (`root@100.93.172.106`, lands in
+- Delivery is automatic: SSH over Tailscale (`root@$KINDLE_HOST`, default `kindle`; lands in
   `/mnt/us/documents/Claude/`), falling back to the USB drive
   (`<drive>:\documents\Claude\`) when the Kindle is plugged in. Force one with
   `--via ssh|usb`; `--via none --out DIR` only builds the file.
@@ -29,7 +29,7 @@ python C:\Users\William\orca\projects\kindle\tools\send_to_kindle.py <file.md> [
 ## Pull highlights and notes
 
 ```
-python C:\Users\William\orca\projects\kindle\tools\pull_notes.py [--since YYYY-MM-DD] [--out notes.md]
+python tools/pull_notes.py [--since YYYY-MM-DD] [--out notes.md]
 ```
 
 - Reads every `*.sdr/metadata.*.lua` under `/mnt/us/documents` (SSH, or the USB

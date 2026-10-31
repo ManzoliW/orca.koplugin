@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pull KOReader highlights and notes from the Kindle as markdown.
 
-    pull_notes.py [--via auto|ssh|usb|local] [--host 100.93.172.106] [--user root]
+    pull_notes.py [--via auto|ssh|usb|local] [--host kindle] [--user root]
                   [--root /mnt/us/documents] [--since YYYY-MM-DD] [--out notes.md]
                   [--local-dir DIR] [FILE.lua ...]
 
@@ -20,7 +20,7 @@ import re
 import subprocess
 import sys
 
-DEFAULT_HOST = "100.93.172.106"
+DEFAULT_HOST = os.environ.get("KINDLE_HOST", "kindle")  # Tailscale MagicDNS name or IP
 DEFAULT_USER = "root"
 DEFAULT_ROOT = "/mnt/us/documents"
 

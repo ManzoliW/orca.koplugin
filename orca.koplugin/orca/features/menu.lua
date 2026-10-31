@@ -1,0 +1,193 @@
+--[[
+    The Orca entry in KOReader's main menu (Tools → Orca): one way in, then
+    settings. Settings rows keep a fixed label and show their value on the
+    right.
+--]]
+
+local _ = require("gettext")
+local T = require("ffi/util").template
+
+local Menu = {}
+
+local PAIRING_FILE = "/mnt/us/orca-pairing.txt"
+Menu.PAIRING_FILE = PAIRING_FILE
+
+local function choice(app, key, values, fmt, on_change)
+    local items = {}
+    for _, v in ipairs(values) do
+        table.insert(items, {
+            text = fmt and T(fmt, v) or tostring(v),
+            checked_func = function() return app.settings:get(key) == v end,
+            radio = true,
+            callback = function()
+                app.settings:set(key, v)
+                if on_change then on_change(v) end
+            end,
+        })
+    end
+    return items
+end
+
+function Menu.items(app, plugin)
+    local settings = app.settings
+    local paired = function() return settings:isPaired() end
+
+    return {
+        text = _("Orca"),
+        sorting_hint = "tools",
+        sub_item_table = {
+            {
+                text = _("Open Orca"),
+                enabled_func = paired,
+                callback = function() app.home:open() end,
+            },
+            {
+                text = _("Start something new…"),
+                enabled_func = paired,
+                callback = function() app.online(function() app.create:open() end) end,
+                separator = true,
+            },
+            {
+                text = _("Notify me while I read"),
+                help_text = _("Pops up over your book when a session needs a decision or finishes, with buttons to answer it right there."),
+                checked_func = function() return settings:get("watch_enabled") end,
+                callback = function()
+                    settings:flip("watch_enabled")
+                    app.notify:start()
+                end,
+            },
+            {
+                text = _("Claude status on the sleep screen"),
+                help_text = _("While the Kindle is awake, keeps the sleep-screen message updated with Claude's usage limits, your latest conversation and which sessions need you. Turning it off restores your previous message."),
+                checked_func = function() return settings:get("sleep_status") end,
+                callback = function() app.sleep:setEnabled(not settings:get("sleep_status")) end,
+            },
+            {
+                text = _("Agent for new sessions"),
+                mandatory_func = function() return app:agentName() end,
+                sub_item_table = (function()
+                    local items = {}
+                    for _, id in ipairs({ "claude", "codex", "gemini", "opencode" }) do
+                        table.insert(items, {
+                            text = app:agentName(id),
+                            radio = true,
+                            checked_func = function() return app:agent() == id end,
+                            callback = function() settings:set("agent", id) end,
+                        })
+                    end
+                    return items
+                end)(),
+                separator = true,
+            },
+            {
+                text = _("Session view"),
+                sub_item_table = {
+                    {
+                        text = _("Fit terminal to Kindle screen"),
+                        help_text = _("While you view a session, the desktop resizes that terminal to the Kindle's width, and restores it when you leave."),
+                        checked_func = function() return settings:get("fit_viewport") end,
+                        callback = function() settings:flip("fit_viewport") end,
+                    },
+                    {
+                        text = _("Live updates"),
+                        help_text = _("Refresh the screen when the session prints something. Off: refresh after you press a key, and every few seconds."),
+                        checked_func = function() return settings:get("live_updates") end,
+                        callback = function() settings:flip("live_updates") end,
+                    },
+                    {
+                        text = _("Refresh interval"),
+                        enabled_func = function() return not settings:get("live_updates") end,
+                        mandatory_func = function() return T(_("%1 s"), settings:get("refresh_interval")) end,
+                        sub_item_table = choice(app, "refresh_interval", { 5, 10, 20, 30, 60 }, _("%1 seconds")),
+                    },
+                    {
+                        text = _("Font size"),
+                        mandatory_func = function() return T(_("%1 px"), settings:get("font_size")) end,
+                        sub_item_table = choice(app, "font_size", { 11, 12, 13, 14, 16, 18 }, _("%1 px")),
+                    },
+                },
+            },
+            {
+                text = _("Pairing"),
+                mandatory_func = function() return settings:isPaired() and _("Paired") or _("Not paired") end,
+                sub_item_table = {
+                    {
+                        text = T(_("Import from %1"), PAIRING_FILE),
+                        callback = function() plugin:importPairingFile() end,
+                    },
+                    {
+                        text = _("Enter pairing link…"),
+                        callback = function()
+                            app.text.ask{
+                                title = _("Orca pairing link"),
+                                description = _("Paste the link from Orca → Settings → Mobile (orca://pair?code=…)."),
+                                ok_text = _("Pair"),
+                                on_ok = function(url) plugin:savePairing(url) end,
+                            }
+                        end,
+                    },
+                    {
+                        text = _("Forget pairing"),
+                        enabled_func = paired,
+                        callback = function()
+                            app.dialog.confirm{
+                                title = _("Forget pairing?"),
+                                text = _("This Kindle will stop reaching Orca until you pair it again."),
+                                ok_text = _("Forget"),
+                                destructive = true,
+                                on_ok = function()
+                                    settings:set("pairing_url", nil)
+                                    app.connection:reset()
+                                end,
+                            }
+                        end,
+                    },
+                },
+            },
+            {
+                text = _("Connection"),
+                sub_item_table = {
+                    {
+                        text = _("Test connection"),
+                        enabled_func = paired,
+                        callback = function() plugin:testConnection() end,
+                    },
+                    {
+                        text = _("Use Tailscale proxy"),
+                        help_text = _("Reach the PC through Tailscale's SOCKS5 proxy on localhost:1055 (needed on Kindles without a TUN device)."),
+                        checked_func = function() return settings:get("use_proxy") end,
+                        callback = function()
+                            settings:flip("use_proxy")
+                            app.connection:reset()
+                        end,
+                    },
+                    {
+                        text = _("Desktop address"),
+                        mandatory_func = function() return settings:get("host_override") or _("from pairing") end,
+                        keep_menu_open = true,
+                        callback = function()
+                            app.text.ask{
+                                title = _("Desktop address"),
+                                description = _("Leave empty to use the address from the pairing link. Example: 100.64.0.2"),
+                                input = settings:get("host_override"),
+                                on_ok = function(host)
+                                    host = host:gsub("%s", "")
+                                    settings:set("host_override", host ~= "" and host or nil)
+                                    app.connection:reset()
+                                end,
+                            }
+                        end,
+                    },
+                    {
+                        text = _("Check for news every"),
+                        help_text = _("Used only when the desktop can't push notifications to the Kindle."),
+                        mandatory_func = function() return T(_("%1 s"), settings:get("watch_interval")) end,
+                        sub_item_table = choice(app, "watch_interval", { 15, 30, 60, 120 }, _("%1 seconds")),
+                    },
+                },
+            },
+        },
+    }
+end
+
+return Menu

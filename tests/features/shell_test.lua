@@ -1,0 +1,43 @@
+-- Quoting for commands typed into a desktop terminal.
+local H = require("tests.harness")
+local shell = require("orca.core.shell")
+
+H.test("shell: plain words stay bare", function()
+    H.eq(shell.quote("C:/p/hello-world"), "C:/p/hello-world")
+    H.eq(shell.quote("https://github.com/octo/x.git"), "https://github.com/octo/x.git")
+    H.eq(shell.quote("9ff43156-23bc-477a-8316-03474ed4a803"), "9ff43156-23bc-477a-8316-03474ed4a803")
+end)
+
+H.test("shell: spaces, $, ; and commas are single-quoted; flags stay bare", function()
+    H.eq(shell.quote("C:/My Projects/x"), "'C:/My Projects/x'")
+    H.eq(shell.quote("$(rm -rf /)"), "'$(rm -rf /)'")
+    H.eq(shell.quote("a;b"), "'a;b'")
+    H.eq(shell.quote("a,b"), "'a,b'")
+    H.eq(shell.quote("--path"), "--path")
+    H.eq(shell.quote(""), "''")
+end)
+
+H.test("shell: embedded quotes per flavor, refused when unknown", function()
+    H.eq(shell.quote("it's", "posix"), "'it'\\''s'")
+    H.eq(shell.quote("it's", "powershell"), "'it''s'")
+    H.eq(shell.quote("it\226\128\153s", "powershell"), "'it\226\128\153\226\128\153s'")
+    local q, err = shell.quote("it's")
+    H.eq(q, nil); H.has(err, "quote")
+end)
+
+H.test("shell: control characters are refused", function()
+    local q, err = shell.quote("a\nrm -rf ~", "posix")
+    H.eq(q, nil); H.has(err, "control")
+    H.eq(shell.quote("a\27[A", "powershell"), nil)
+    H.eq(shell.cmd("posix", "cd", "ok", "bad\r"), nil)
+end)
+
+H.test("shell: flavor from the path, cmd and join", function()
+    H.eq(shell.flavor("C:/p"), "powershell")
+    H.eq(shell.flavor("C:\\p"), "powershell")
+    H.eq(shell.flavor("/home/me"), "posix")
+    H.eq(shell.flavor("relative"), nil)
+    H.eq(shell.cmd("powershell", "git", "-C", "C:/a b", "commit", "-m", "Initial commit"),
+        "git -C 'C:/a b' commit -m 'Initial commit'")
+    H.eq(shell.join{ "a", "b" }, "a; b")
+end)

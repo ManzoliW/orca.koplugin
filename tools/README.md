@@ -1,12 +1,12 @@
 # tools/ — drive the Kindle from the PC
 
-`kindlectl.py` talks to the Kindle over SSH (Tailscale, `root@100.93.172.106`,
+`kindlectl.py` talks to the Kindle over SSH (Tailscale, `root@$KINDLE_HOST`, default `kindle`,
 key login) so a Claude Code session can look at the screen and tap it while
 testing the Orca plugin. Nothing is installed on the device beyond one Lua
 script under `/mnt/us/orca-dev/tools/`, uploaded on first use.
 
 ```
-python tools/kindlectl.py shot [--scale 0.5] [out.png]   screenshot (PNG) -> scratchpad/shots/
+python tools/kindlectl.py shot [--scale 0.5] [out.png]   screenshot (PNG) -> ./shots/ (or $KINDLE_SHOTS_DIR)
 python tools/kindlectl.py probe                           touch device, axis ranges, fb size; writes device/profile.json
 python tools/kindlectl.py tap X Y                         screen-pixel coordinates
 python tools/kindlectl.py swipe X1 Y1 X2 Y2 [--ms 300]
