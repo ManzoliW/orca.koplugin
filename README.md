@@ -63,6 +63,11 @@ Opening a workspace shows these rows above its terminals:
   edit) and **Commit & push**, **Push**, **Pull**, **Open a pull request**
   (normal or draft), and **Read all changes as a book**, which opens every diff
   as one document in KOReader.
+- **Pull request:** when the branch already has one, the Git screen shows it
+  with its checks (✓ ✗ …). Tap a check for its failing steps and annotations;
+  **Re-run the failed checks**, **Ask Claude to fix the failures** (starts a
+  session in the workspace with the failing check names), or **Merge…**
+  (squash, merge commit or rebase).
 - **Files:** browse the checkout and read any file. **Open as book** saves it
   to `documents/Claude/`; **Ask Claude…** sends a question about it to a session.
 - **Workspace:** put it to sleep, or remove it (the branch is kept).

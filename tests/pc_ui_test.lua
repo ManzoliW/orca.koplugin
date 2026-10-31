@@ -105,6 +105,18 @@ local results = {
     ["worktree.sleep"] = { worktreeId = "w" },
     ["worktree.rm"] = { removed = true },
     ["terminal.send"] = { ok = true },
+    ["github.prForBranch"] = { kind = "no-pr" },
+    ["github.prChecks"] = {
+        { name = "check", status = "completed", conclusion = "success", checkRunId = 1, workflowRunId = 10, url = "u1" },
+        { name = "smoke", status = "completed", conclusion = "failure", checkRunId = 2, workflowRunId = 11, url = "u2" },
+        { name = "deploy", status = "in_progress", url = "u3" },
+    },
+    ["github.prCheckDetails"] = { conclusion = "failure", title = "smoke failed", summary = "1 error",
+        jobs = { { name = "smoke", conclusion = "failure", steps = {
+            { name = "Install", conclusion = "success" }, { name = "Run smoke", conclusion = "failure" } } } },
+        annotations = { { path = "app/x.ts", startLine = 12, message = "boom" } }, detailsUrl = "https://gh/run/2" },
+    ["github.rerunPRChecks"] = { ok = true },
+    ["github.mergePR"] = { ok = true },
     ["accounts.list"] = { rateLimits = { claude = { status = "ok",
         session = { usedPercent = 61.6, resetsAt = (os.time() + 5400) * 1000 },
         weekly = { usedPercent = 35, resetsAt = (os.time() + 3 * 86400) * 1000 } } } },
@@ -252,6 +264,34 @@ tap("Remove"); local box = last("ConfirmBox"); box.ok_callback()
 check("remove keeps branch", called("worktree.rm").deleteBranch == false)
 o:showStats()
 check("stats", last("InfoMessage").text:find("Agent time: 2.0 h", 1, true), last("InfoMessage").text)
+
+-- Pull request status, checks, merge
+results["github.prForBranch"] = { kind = "found", pr = { number = 12, title = "Fix login", state = "open",
+    url = "https://gh/pull/12", checksStatus = "failure", mergeable = "MERGEABLE", headSha = "abc" } }
+o:openWorkspaces(); tap("kindle"); tap("Git:")
+check("pr row replaces open-pr", o.menu.item_table[6] and o.menu.item_table[6].text == "Pull request #12: Fix login"
+    and o.menu.item_table[6].mandatory == "checks ✗", o.menu.item_table[6] and o.menu.item_table[6].text)
+tap("Pull request #12")
+check("pr facts", o.menu.item_table[3].text == "open · mergeable", o.menu.item_table[3].text)
+check("checks listed", o.menu.item_table[7].text == "✓ check" and o.menu.item_table[8].text == "✗ smoke"
+    and o.menu.item_table[9].text == "… deploy", o.menu.item_table[8].text)
+check("prChecks params", called("github.prChecks").prNumber == 12 and called("github.prChecks").headSha == "abc")
+tap("✗ smoke"); v = last("TextViewer")
+check("check details", v.text:find("Run smoke", 1, true) and v.text:find("app/x.ts:12  boom", 1, true)
+    and not v.text:find("Install", 1, true), v.text)
+tap("Re-run the failed check")
+check("rerun failed only", called("github.rerunPRChecks").failedOnly == true and called("github.rerunPRChecks").prNumber == 12)
+tap("Ask Claude to fix")
+p = called("session.tabs.createTerminal")
+check("fix prompt", p.agentPrompt:find("smoke", 1, true) and p.agentPrompt:find("gh pr checks 12", 1, true), p.agentPrompt)
+o:openWorkspaces(); tap("kindle"); tap("Git:"); tap("Pull request #12"); tap("Merge"); tap("Squash and merge")
+last("ConfirmBox").ok_callback()
+check("merge squash", called("github.mergePR").method == "squash" and called("github.mergePR").prNumber == 12)
+results["github.prCheckDetails"] = { summary = (function() end)() }
+o:openWorkspaces(); tap("kindle"); tap("Git:"); tap("Pull request #12"); tap("✗ smoke"); v = last("TextViewer")
+check("check without details", v.text:find("smoke · failure", 1, true) and v.text:find("no details", 1, true) and v.text:find("u2", 1, true), v.text)
+noErrors("pr status")
+results["github.prForBranch"] = { kind = "no-pr" }
 
 -- Recent conversations
 o:openWorkspaces(); tap("Recent conversations")

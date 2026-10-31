@@ -32,6 +32,16 @@ local GIT_STATUS = {
     modified = "M", added = "A", deleted = "D", renamed = "R", untracked = "?", copied = "C",
 }
 
+-- Check run conclusions (GitHub) -> mark.
+local CHECK_MARK = {
+    success = "✓", failure = "✗", timed_out = "✗", cancelled = "✗", action_required = "✗",
+    startup_failure = "✗", skipped = "–", neutral = "–", stale = "–",
+}
+local CHECKS_STATUS = { success = _("checks ✓"), failure = _("checks ✗"), pending = _("checks …"), neutral = _("checks –") }
+local MERGEABLE = { MERGEABLE = _("mergeable"), CONFLICTING = _("has conflicts"), UNKNOWN = "" }
+local REVIEW = { APPROVED = _("approved"), CHANGES_REQUESTED = _("changes requested"), REVIEW_REQUIRED = _("review required") }
+local MERGE_LABEL = { squash = _("Squash and merge"), merge = _("Merge commit"), rebase = _("Rebase and merge") }
+
 return function(Orca, h)
     local str, basename = h.str, h.basename
 
@@ -575,6 +585,13 @@ return function(Orca, h)
                 local status, err = c:call("git.status", { worktree = wtSelector(wt), includeLineStats = true }, 60)
                 if not status then return nil, err end
                 status.upstream = c:call("git.upstreamStatus", { worktree = wtSelector(wt) }, 30)
+                local branch = str(status.branch):gsub("^refs/heads/", "")
+                if branch ~= "" then
+                    local found = c:call("github.prForBranch", { repo = "id:" .. repoIdOf(wt), branch = branch }, 60)
+                    if type(found) == "table" and found.kind == "found" and type(found.pr) == "table" then
+                        status.pr = found.pr
+                    end
+                end
                 return status
             end,
             done = function(status, err)
@@ -607,7 +624,16 @@ return function(Orca, h)
         end
         table.insert(items, { text = _("Push"), callback = function() self:gitSimple(wt, "git.push", _("Pushing…"), _("Pushed.")) end })
         table.insert(items, { text = _("Pull"), callback = function() self:gitSimple(wt, "git.pull", _("Pulling…"), _("Pulled.")) end })
-        table.insert(items, { text = _("Open a pull request…"), callback = function() self:openPullRequest(wt, branch) end })
+        if status.pr then
+            local pr = status.pr
+            table.insert(items, {
+                text = T(_("Pull request #%1: %2"), pr.number, str(pr.title)),
+                mandatory = CHECKS_STATUS[str(pr.checksStatus)] or str(pr.state),
+                callback = function() self:openPrStatus(wt, pr) end,
+            })
+        else
+            table.insert(items, { text = _("Open a pull request…"), callback = function() self:openPullRequest(wt, branch) end })
+        end
         table.insert(items, { text = _("Read all changes as a book"), callback = function() self:changesBook(wt, entries) end })
         for _i, e in ipairs(entries) do
             local stats = ""
@@ -817,6 +843,151 @@ return function(Orca, h)
                 UIManager:show(InfoMessage:new{ text = T(_("Pull request #%1 opened:\n%2"), r.number, str(r.url)) })
             end,
         }
+    end
+
+    -- Pull request status: checks, re-run, merge -----------------------------------------
+
+    local function checkMark(check)
+        if str(check.status) ~= "completed" then return "…" end
+        return CHECK_MARK[str(check.conclusion)] or "?"
+    end
+
+    local function isFailed(check) return checkMark(check) == "✗" end
+
+    function Orca:openPrStatus(wt, pr, replace)
+        local repo = "id:" .. repoIdOf(wt)
+        self:queue{
+            busy = _("Loading checks…"),
+            run = function(c)
+                return c:call("github.prChecks", { repo = repo, prNumber = pr.number, headSha = pr.headSha, noCache = replace }, 60)
+            end,
+            done = function(checks, err)
+                if not checks then return self:showError(err) end
+                checks = checks.checks or checks
+                local failed, facts = {}, {}
+                for _i, fact in ipairs({ str(pr.state), MERGEABLE[str(pr.mergeable)] or str(pr.mergeable),
+                                         REVIEW[str(pr.reviewDecision)] or "" }) do
+                    if fact ~= "" then facts[#facts + 1] = fact end
+                end
+                local items = {
+                    { text = _("↻ Refresh"), callback = function() self:openPrStatus(wt, pr, true) end },
+                    { text = T("#%1 %2", pr.number, str(pr.title)), select_enabled = false },
+                    { text = table.concat(facts, " · "), select_enabled = false },
+                }
+                for _i, check in ipairs(checks) do
+                    if isFailed(check) then failed[#failed + 1] = str(check.name) end
+                    table.insert(items, {
+                        text = checkMark(check) .. " " .. str(check.name),
+                        mandatory = str(check.status) == "completed" and str(check.conclusion) or str(check.status),
+                        callback = function() self:showCheck(wt, check) end,
+                    })
+                end
+                if #checks == 0 then table.insert(items, { text = _("(no checks)"), select_enabled = false }) end
+                if #failed > 0 then
+                    table.insert(items, 4, { text = #failed == 1 and _("Re-run the failed check") or T(_("Re-run %1 failed checks"), #failed), callback = function()
+                        self:rerunChecks(wt, pr)
+                    end })
+                    table.insert(items, 5, { text = _("Ask Claude to fix the failures…"), callback = function()
+                        self:createTabHere(wt, {
+                            agent = self:agentId(),
+                            agentPrompt = T(_("These checks fail on pull request #%1 (%2): %3. Look at their logs (gh pr checks %1), fix the cause, and push."),
+                                pr.number, str(pr.url), table.concat(failed, ", ")),
+                        }, _("Starting Claude…"))
+                    end })
+                end
+                if pr.state == "open" then
+                    table.insert(items, 4, { text = _("Merge…"), callback = function() self:mergePr(wt, pr) end })
+                end
+                if replace then self:replaceMenu(items) else self:pushMenu(T(_("Pull request #%1"), pr.number), items) end
+            end,
+        }
+    end
+
+    function Orca:showCheck(wt, check)
+        self:queue{
+            busy = _("Loading check…"),
+            run = function(c)
+                return c:call("github.prCheckDetails", {
+                    repo = "id:" .. repoIdOf(wt), checkRunId = check.checkRunId,
+                    workflowRunId = check.workflowRunId, checkName = check.name, url = check.url,
+                }, 60)
+            end,
+            done = function(d, err)
+                if not d then return self:showError(err) end
+                local conclusion = str(d.conclusion) ~= "" and str(d.conclusion) or str(check.conclusion)
+                local lines = { T("%1 %2 · %3", checkMark(check), str(check.name), conclusion) }
+                for _i, key in ipairs({ "title", "summary", "text" }) do
+                    if str(d[key]) ~= "" then lines[#lines + 1] = "\n" .. str(d[key]) end
+                end
+                for _i, job in ipairs(type(d.jobs) == "table" and d.jobs or {}) do
+                    lines[#lines + 1] = T("\n%1 · %2", str(job.name), str(job.conclusion or job.status))
+                    for _j, step in ipairs(type(job.steps) == "table" and job.steps or {}) do
+                        if str(step.conclusion) ~= "success" and str(step.conclusion) ~= "skipped" then
+                            lines[#lines + 1] = T("  %1 %2", CHECK_MARK[str(step.conclusion)] or "…", str(step.name))
+                        end
+                    end
+                end
+                local annotations = type(d.annotations) == "table" and d.annotations or {}
+                if #annotations > 0 then lines[#lines + 1] = "\n" .. _("Annotations:") end
+                for _i, a in ipairs(annotations) do
+                    local where = str(a.path)
+                    local line = a.startLine or a.start_line
+                    if line then where = where .. ":" .. tostring(line) end
+                    lines[#lines + 1] = T("%1  %2", where, str(a.message))
+                end
+                if #lines == 1 then
+                    lines[#lines + 1] = "\n" .. _("GitHub has no details for this check (it comes from an outside service). Its page:")
+                end
+                lines[#lines + 1] = "\n" .. (str(d.detailsUrl) ~= "" and str(d.detailsUrl) or str(d.url) ~= "" and str(d.url) or str(check.url))
+                self:viewText(str(check.name), table.concat(lines, "\n"))
+            end,
+        }
+    end
+
+    function Orca:rerunChecks(wt, pr)
+        self:queue{
+            busy = _("Re-running failed checks…"),
+            run = function(c)
+                return c:call("github.rerunPRChecks", {
+                    repo = "id:" .. repoIdOf(wt), prNumber = pr.number, headSha = pr.headSha, failedOnly = true,
+                }, 120)
+            end,
+            done = function(r, err)
+                if not r then return self:showError(err) end
+                if r.ok == false then return self:showError(r.error or r.message) end
+                UIManager:show(InfoMessage:new{ text = _("Failed checks re-started. Refresh in a few minutes."), timeout = 3 })
+            end,
+        }
+    end
+
+    function Orca:mergePr(wt, pr)
+        local function merge(method)
+            UIManager:show(ConfirmBox:new{
+                text = T(_("%1 pull request #%2 into its base?\n\n%3"), MERGE_LABEL[method], pr.number, str(pr.title)),
+                ok_text = MERGE_LABEL[method],
+                ok_callback = function()
+                    self:queue{
+                        busy = _("Merging…"),
+                        run = function(c)
+                            return c:call("github.mergePR", { repo = "id:" .. repoIdOf(wt), prNumber = pr.number, method = method }, 120)
+                        end,
+                        done = function(r, err)
+                            if not r then return self:showError(err) end
+                            if r.ok == false or (type(r.error) == "string" and r.error ~= "") then
+                                return self:showError(r.error or r.message)
+                            end
+                            pr.state = "merged"
+                            UIManager:show(InfoMessage:new{ text = T(_("Pull request #%1 merged."), pr.number), timeout = 3 })
+                        end,
+                    }
+                end,
+            })
+        end
+        local items = {}
+        for _i, method in ipairs({ "squash", "merge", "rebase" }) do
+            items[#items + 1] = { text = MERGE_LABEL[method], callback = function() merge(method) end }
+        end
+        self:pushMenu(T(_("Merge #%1"), pr.number), items)
     end
 
     -- Files ----------------------------------------------------------------------------
