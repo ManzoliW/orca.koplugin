@@ -152,7 +152,11 @@ function Window:render()
     -- FrameContainer's width/height don't count in getSize(): pad the body
     -- ourselves so the footer sits at the bottom.
     local filler = body_h - body:getSize().h
-    if filler > 0 then table.insert(body, VerticalSpan:new{ width = filler }) end
+    if filler > 0 then
+        table.insert(body, VerticalSpan:new{ width = filler })
+        -- getSize() cached the offsets without the filler.
+        body:resetLayout()
+    end
 
     self[1][1] = VerticalGroup:new{
         align = "left",

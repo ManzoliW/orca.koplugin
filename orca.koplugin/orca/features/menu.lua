@@ -1,7 +1,7 @@
 --[[
     The Orca entry in KOReader's main menu (Tools → Orca): one way in, then
-    settings. Settings rows keep a fixed label and show their value on the
-    right.
+    settings. Settings rows read "Label: value" (TouchMenu has no right-hand
+    value column).
 --]]
 
 local _ = require("gettext")
@@ -63,8 +63,7 @@ function Menu.items(app, plugin)
                 callback = function() app.sleep:setEnabled(not settings:get("sleep_status")) end,
             },
             {
-                text = _("Agent for new sessions"),
-                mandatory_func = function() return app:agentName() end,
+                text_func = function() return T("%1: %2", _("Agent for new sessions"), app:agentName()) end,
                 sub_item_table = (function()
                     local items = {}
                     for _, id in ipairs({ "claude", "codex", "gemini", "opencode" }) do
@@ -95,21 +94,18 @@ function Menu.items(app, plugin)
                         callback = function() settings:flip("live_updates") end,
                     },
                     {
-                        text = _("Refresh interval"),
+                        text_func = function() return T("%1: %2", _("Refresh interval"), T(_("%1 s"), settings:get("refresh_interval"))) end,
                         enabled_func = function() return not settings:get("live_updates") end,
-                        mandatory_func = function() return T(_("%1 s"), settings:get("refresh_interval")) end,
                         sub_item_table = choice(app, "refresh_interval", { 5, 10, 20, 30, 60 }, _("%1 seconds")),
                     },
                     {
-                        text = _("Font size"),
-                        mandatory_func = function() return T(_("%1 px"), settings:get("font_size")) end,
+                        text_func = function() return T("%1: %2", _("Font size"), T(_("%1 px"), settings:get("font_size"))) end,
                         sub_item_table = choice(app, "font_size", { 11, 12, 13, 14, 16, 18 }, _("%1 px")),
                     },
                 },
             },
             {
-                text = _("Pairing"),
-                mandatory_func = function() return settings:isPaired() and _("Paired") or _("Not paired") end,
+                text_func = function() return T("%1: %2", _("Pairing"), settings:isPaired() and _("Paired") or _("Not paired")) end,
                 sub_item_table = {
                     {
                         text = T(_("Import from %1"), PAIRING_FILE),
@@ -162,8 +158,7 @@ function Menu.items(app, plugin)
                         end,
                     },
                     {
-                        text = _("Desktop address"),
-                        mandatory_func = function() return settings:get("host_override") or _("from pairing") end,
+                        text_func = function() return T("%1: %2", _("Desktop address"), settings:get("host_override") or _("from pairing")) end,
                         keep_menu_open = true,
                         callback = function()
                             app.text.ask{
@@ -179,9 +174,8 @@ function Menu.items(app, plugin)
                         end,
                     },
                     {
-                        text = _("Check for news every"),
+                        text_func = function() return T("%1: %2", _("Check for news every"), T(_("%1 s"), settings:get("watch_interval"))) end,
                         help_text = _("Used only when the desktop can't push notifications to the Kindle."),
-                        mandatory_func = function() return T(_("%1 s"), settings:get("watch_interval")) end,
                         sub_item_table = choice(app, "watch_interval", { 15, 30, 60, 120 }, _("%1 seconds")),
                     },
                 },
