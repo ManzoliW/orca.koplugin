@@ -342,7 +342,7 @@ the design rules for the e-ink UI are described in
 
 Kindle Basic (KT4, 10th gen), firmware 5.18.1.1.1, KOReader 2026.07.1, Orca
 desktop on Windows 11. The plugin follows KOReader's language: it ships in
-English and Brazilian Portuguese (`orca.koplugin/orca/l10n/pt_BR.lua`; a new
+English, Brazilian Portuguese and Spanish (`orca.koplugin/orca/l10n/`; a new
 language is one more file there, and `luajit tests/run.lua` lists any string
 it misses). Other Kindles that run KOReader should work. The
 touch-injection tool (`kindlectl`) may need its profile adjusted on other

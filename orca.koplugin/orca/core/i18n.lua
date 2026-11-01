@@ -1,8 +1,9 @@
 --[[
     The plugin's own translations. KOReader's catalog only knows KOReader's
     strings, so most of ours stayed English in a translated KOReader. Each
-    language with a catalog in orca/l10n/<lang>.lua (msgid -> text) uses it;
-    any other language falls back to KOReader's gettext, as before.
+    language with a catalog in orca/l10n/<lang>.lua (msgid -> text) uses it,
+    regional variants included (es_MX uses es.lua); any other language falls
+    back to KOReader's gettext, as before.
 
         local _ = require("orca.core.i18n")
         _("Home")                        -- "Início" in pt_BR
@@ -22,6 +23,9 @@ local function catalog()
     local lang = GetText.current_lang or "C"
     if catalogs[lang] == nil then
         local ok, t = pcall(require, "orca.l10n." .. lang)
+        if not (ok and type(t) == "table") and lang:find("_") then
+            ok, t = pcall(require, "orca.l10n." .. lang:match("^[^_]+"))
+        end
         catalogs[lang] = ok and type(t) == "table" and t or false
     end
     return catalogs[lang]
