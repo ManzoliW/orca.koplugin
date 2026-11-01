@@ -63,7 +63,9 @@ local Orca = WidgetContainer:extend{
     is_doc_only = false,
 }
 
-local function log(...) logger.warn("Orca:", ...) end
+-- Connection, stream and wake events, for debugging from crash.log. Never
+-- pass request params or the pairing: they hold the device token.
+local function log(...) logger.info("Orca:", ...) end
 
 -- Builds the app context; separate from init so tests can build one with fakes.
 function Orca.buildApp(opts)
@@ -155,11 +157,12 @@ end
 -- KOReader stops scheduling while suspended and Wi-Fi goes off: the socket
 -- is stale afterwards.
 function Orca:onSuspend()
+    log("suspend")
     self.app.notify:suspend()
 end
 
 function Orca:onResume()
-    self.app.connection:reset()
+    self.app.connection:reset("woke up")
     self.app.notify:resume()
     self.app.sleep:start()
 end
@@ -173,7 +176,7 @@ function Orca:savePairing(url)
         return false
     end
     self.app.settings:set("pairing_url", (url:gsub("%s", "")))
-    self.app.connection:reset()
+    self.app.connection:reset("new pairing")
     self.app:toast(T(_("Paired with %1"), offer.endpoint))
     self.app.notify:start()
     return true

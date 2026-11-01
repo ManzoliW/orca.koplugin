@@ -132,6 +132,7 @@ function Notify:subscribe(c)
     end
     self:stopPolling()
     self.sub = { id = id, subscriptionId = ready.subscriptionId, epoch = ready.epoch }
+    self.app.log("notify: listening")
 
     local watermark = self.app.settings:get("notify_watermark")
     local missed = api.missedSince(c, watermark or { seq = 0, epoch = ready.epoch })
@@ -143,6 +144,7 @@ function Notify:subscribe(c)
         self:saveWatermark(seq, missed.epoch ~= "" and missed.epoch or ready.epoch)
         return
     end
+    self.app.log("notify: catching up on", #missed.notifications, "events")
     for _i, ev in ipairs(missed.notifications) do
         c:keep{ id = id, result = ev, catchup = true }
     end
@@ -192,6 +194,7 @@ function Notify:onFrame(ev, msg)
     if not self.active or type(ev) ~= "table" then return end
     if ev.type == "end" then
         -- The desktop dropped the subscription while the socket stayed up.
+        self.app.log("notify: desktop ended the stream; resubscribing")
         self.sub = nil
         if self.app.connection:isConnected() then self:connect() end
         return

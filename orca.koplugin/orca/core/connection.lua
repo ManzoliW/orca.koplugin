@@ -60,7 +60,14 @@ function Connection:ensure()
     if not client then return nil, err end
     if client:isConnected() then return client end
     local ok, cerr = client:connect()
-    if not ok then return nil, cerr end
+    if not ok then
+        self.log("connect failed:", cerr)
+        return nil, cerr
+    end
+    local keys = {}
+    for key in pairs(self.hooks) do table.insert(keys, key) end
+    table.sort(keys)
+    self.log("connected; running hooks:", table.concat(keys, ", "))
     self.handlers = {}
     for key, hook in pairs(self.hooks) do
         local hook_ok, herr = pcall(hook, client)
@@ -71,8 +78,12 @@ end
 
 -- Closes the socket and forgets the client (pairing or address changed, or
 -- the Kindle woke up and the old socket is stale).
-function Connection:reset()
-    if self.instance then self.instance:close() end
+-- reason is only logged.
+function Connection:reset(reason)
+    if self.instance then
+        if self.instance:isConnected() then self.log("closing connection:", reason or "reset") end
+        self.instance:close()
+    end
     self.instance = nil
     self.handlers = {}
 end
@@ -85,7 +96,12 @@ end
 -- Returns request id, first result; or nil, err.
 function Connection:stream(client, method, params, handler, timeout)
     local id, first = client:startStream(method, params, timeout)
-    if id then self.handlers[id] = handler end
+    if id then
+        self.handlers[id] = handler
+        self.log("stream started:", method)
+    else
+        self.log("stream failed:", method, first)
+    end
     return id, first
 end
 
@@ -143,7 +159,7 @@ function Connection:stop()
     if self.pumper then self.unschedule(self.pumper) end
     self.pumper = nil
     self.keepers = {}
-    self:reset()
+    self:reset("plugin closing")
 end
 
 return Connection

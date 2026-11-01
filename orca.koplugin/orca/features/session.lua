@@ -54,6 +54,7 @@ function Session.new(app)
         local s = self.current
         if s and s.subscribed then
             s.subscribed = false
+            app.log("session: resubscribing after reconnect")
             if self:subscribe(c, s) and s.fit then
                 local t = app.now()
                 s.reclaim = {}
@@ -163,7 +164,10 @@ function Session:onFrame(s, result)
         s.dirty = true
         s.last_output = t
     elseif kind == "fit-override-changed" and s.viewport then
-        if util.num(result.cols, -1) ~= s.viewport.cols then s.fit_lost = true end
+        if util.num(result.cols, -1) ~= s.viewport.cols then
+            self.app.log("session: desktop took the size back:", result.cols, "cols")
+            s.fit_lost = true
+        end
     end
 end
 
@@ -288,6 +292,7 @@ function Session:reclaim(s)
         run = function(c)
             if not (s.fit and s.subscribed) then return true end
             local ok, err = c:claimViewport(s.handle, s.viewport)
+            self.app.log("session: claimed the Kindle's size again:", ok and "ok" or err)
             if ok then s.fit_lost = false end
             return ok, err
         end,
