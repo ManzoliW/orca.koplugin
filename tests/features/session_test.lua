@@ -87,7 +87,7 @@ H.test("Type… sends text with or without Enter", function()
     local ask = t.asks[#t.asks]
     H.eq(ask.title, "Send to Claude")
     H.eq(ask.multiline, true)
-    H.eq(ask.ok_text, "Send ⏎")
+    H.eq(ask.ok_text, "Send")
     t.answer("hello")
     H.eq(t.lastCall("terminal.send").params.text, "hello")
     H.eq(t.lastCall("terminal.send").params.enter, true)

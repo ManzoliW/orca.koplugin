@@ -234,7 +234,7 @@ function Session:type(s)
     self.app.text.ask{
         title = T(_("Send to %1"), s.title),
         multiline = true,
-        ok_text = _("Send ⏎"),
+        ok_text = _("Send"),
         on_ok = function(value) self:send(s, { text = value, enter = true }) end,
         extra = { { text = _("Type only"), callback = function(value)
             self:send(s, { text = value, enter = false })
