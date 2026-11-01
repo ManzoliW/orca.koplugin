@@ -1,273 +1,62 @@
-# Kindle × Orca
+<p align="center">
+  <img src="docs/cover.png" alt="Kindle × Orca: Claude Code sessions on a Kindle">
+</p>
 
-Use a jailbroken Kindle as an e-ink remote for your
-[Orca](https://github.com/stablyai/orca) sessions, such as Claude Code, over
-Tailscale. Read a book, get a ping when Claude needs a decision, approve it
-with one tap, and go back to reading.
+<h1 align="center">Kindle × Orca</h1>
 
 <p align="center">
-  <img src="docs/screenshots/session.png" width="300" alt="A Claude Code session on the Kindle">
+  Use a jailbroken Kindle as an e-ink remote for your <a href="https://github.com/stablyai/orca">Orca</a> sessions
+  (Claude Code, Codex…).<br>
+  Read a book, get a ping when Claude needs a decision, answer with one tap, go back to reading.
 </p>
 
-All screenshots on this page come from a real Kindle Basic (10th gen, 600×800),
-captured over SSH with [`tools/kindlectl.py`](tools/README.md).
-
-## What you can do
-
-### Home
-
-**Open Orca** starts on a dashboard that answers "does anything need me?"
-first:
-
-- **The session waiting for you**, drawn as a black card with the agent's
-  question and its choices as buttons (**1 Yes**, **2 …**, **Esc**), so you
-  can answer from Home, or **Open session**.
-- **Workspaces with an agent at work**, as ● Needs you, ◐ Working and ○ Done.
-- **Your pull requests**: the open ones you authored, across all of Orca's
-  projects, with their checks (✓ pass, ✕ fail, … running). Tap one for its
-  checks, **Merge…**, **Re-run the failed checks** or **Ask Claude to fix…**.
-- **Claude usage**: the 5-hour and weekly limits as bars, with when they reset.
-- **Activity**: conversations touched today, agents started, pull requests
-  you merged in the last 7 days, and agent time. Tap a number for the screen
-  behind it.
-- **Continue reading**: the book you opened last, with its cover, progress
-  and time read today. Tap it to go back to the book.
-- **Reading**: the time you read each day, from KOReader's reading
-  statistics, as a heatmap over the last months, with your streak (or the
-  day you last read) and this month's total.
-- **GitHub**: your contribution calendar from github.com, drawn the same way
-  right below, so coding and reading sit side by side.
-- **This week**: reading time (on how many days, and against the week
-  before), pull requests merged with your GitHub contributions, and agent
-  time with the agents started. Orca only keeps lifetime totals, so the
-  Kindle remembers each day's and subtracts the ones from a week ago; for the
-  first week the agent numbers count from the day you installed this. On
-  Mondays the sleep picture shows this card too.
-- **From Claude**: the newest files in `documents/Claude/` (diffs, files and
-  conversations you opened as books), marked **New** until you open them,
-  then with how far you've read. The heading counts the new ones, and
-  **All files from Claude…** opens the folder in KOReader's file browser.
-- **Tabs** at the bottom: Home, Workspaces, Chats, Usage and Automations.
-
-The last dashboard shows straight away while the new one loads ("Updating…").
-Usage and totals are reused for 5 minutes and conversations for 15, since
-listing conversations makes the desktop scan transcripts on disk; ↻ fetches
-everything again. The reading part comes from the Kindle itself, so it is
-there even when your PC can't be reached.
-
-Pull requests come through Orca, using your desktop's GitHub login, and are
-reused for 15 minutes. The contribution calendar is GitHub's public page
-(no token): the Kindle fetches it itself, in the background, at most twice a
-day, and keeps it for offline use. Your GitHub user is taken from the author
-of your pull requests; set it by hand in Tools → Orca → **GitHub user**.
-
-<p>
-  <img src="docs/screenshots/home.png" width="260" alt="Home dashboard">
-  &nbsp;
-  <img src="docs/screenshots/reading.png" width="260" alt="Reading and GitHub heatmaps">
+<p align="center">
+  <a href="#getting-started">Getting started</a> ·
+  <a href="#what-you-can-do">What you can do</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#development">Development</a>
 </p>
 
-### Browse workspaces and sessions
+---
 
-The **Workspaces** tab lists every workspace, grouped by what needs attention
-first (**● Needs you**, **◐ Working**, **○ Done**), and each session shows its
-agent's state. Tap a row to go in, **‹** to go back, swipe or use the page
-buttons to turn pages.
+- **A dashboard that answers "does anything need me?"**: the waiting question with
+  its answer buttons, your sessions, pull requests with their checks, Claude's
+  usage limits, and your week.
+- **Drive sessions from e-ink**: a terminal view sized to the Kindle, buttons for
+  what agents ask most, free typing, and live updates.
+- **Git and pull requests**: changes, commit with a drafted message, push, open
+  a pull request, read its checks, re-run them, merge, or ask Claude to fix them.
+- **Notified while you read**: a popup over your book with the question and
+  its buttons, and a sleep screen that shows what needs you.
+- **Reading and coding side by side**: your book's progress and reading heatmap
+  next to your GitHub contributions.
+- **Books both ways**: send plans, reviews and diffs to the Kindle as EPUBs; send
+  a highlighted passage to Claude.
 
-<p>
-  <img src="docs/screenshots/workspaces.png" width="260" alt="Workspace list">
-  &nbsp;
-  <img src="docs/screenshots/terminals.png" width="260" alt="Terminals in a workspace">
-</p>
+## Screenshots
 
-### Drive a session
+All taken on a Kindle Basic (10th gen, 600×800). The projects, sessions and
+pull requests are demo data ([how](tools/screenshots/README.md)).
 
-The session view shows the terminal's current screen. The desktop resizes that
-terminal to the Kindle's width while you're looking at it, so nothing is cut
-off, and restores the size when you leave. Buttons cover what Claude Code asks
-for most: `1 2 3` for choices, `Esc`, `Ctrl-C`, arrows, `Tab`/`S-Tab`
-(mode switching), `Enter`, and **Type…** for free text. With live updates on, the
-screen refreshes when the session prints something. The terminal uses a
-bundled DejaVu Sans Mono, since the Kindle's own monospace font has no box
-drawing, so agents' boxes and rules line up.
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.png" width="250"><br><sub><b>Home</b>: what needs you first</sub></td>
+    <td align="center"><img src="docs/screenshots/session.png" width="250"><br><sub><b>A session</b>, answered from the Kindle</sub></td>
+    <td align="center"><img src="docs/screenshots/sleep.png" width="250"><br><sub><b>Sleep screen</b>: still useful asleep</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home-prs.png" width="250"><br><sub><b>Pull requests</b> and Claude's limits</sub></td>
+    <td align="center"><img src="docs/screenshots/home-week.png" width="250"><br><sub><b>This week</b> and your book</sub></td>
+    <td align="center"><img src="docs/screenshots/home-reading.png" width="250"><br><sub><b>Reading</b> next to GitHub</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/notify.png" width="250"><br><sub><b>A popup</b> over your book</sub></td>
+    <td align="center"><img src="docs/screenshots/git.png" width="250"><br><sub><b>Git</b> and the branch's pull request</sub></td>
+    <td align="center"><img src="docs/screenshots/chats.png" width="250"><br><sub><b>Conversations</b> across projects</sub></td>
+  </tr>
+</table>
 
-Swipe down in the text to read what scrolled off: with **Keep earlier
-output** on (Session view settings), the terminal is made three Kindle
-screens tall while you view it. **Rotate** switches between portrait and
-landscape; the terminal is resized to fit either way.
-
-### Start something new
-
-**+** in the title bar of the workspace list (also **Start something new…** in
-Tools → Orca) gives four options:
-
-- **New workspace with Claude:** pick a project, say what Claude should do,
-  and the workspace opens with Claude already working on it.
-- **From a GitHub issue or PR:** browse or search the project's open issues and
-  pull requests, tap one, and Claude starts in a workspace linked to it. For a
-  PR, the workspace checks out the PR's branch.
-- **Clone from GitHub:** type `owner/repo` or a URL. It's cloned on the desktop
-  and added to Orca, and you watch the progress in a terminal.
-- **New empty project:** creates a folder with a git repository (and an empty
-  first commit) and adds it to Orca.
-
-Orca doesn't let phones clone or add projects directly. For those two, the
-plugin runs `git` and the `orca` CLI in a desktop terminal. New projects go
-next to your existing ones; change the folder with **Folder…**.
-
-### Work inside a workspace
-
-Opening a workspace shows its sessions, then:
-
-- **+** in the title bar: a new Claude session (with an optional first prompt)
-  or a shell.
-- **Git:** branch and ahead/behind, the changed files (tap one for its diff),
-  **Commit all** (with a message drafted by the desktop's agent, which you can
-  edit) and **Commit & push**, **Push**, **Pull**, **Open a pull request**
-  (normal or draft), and **Read all changes as a book**, which opens every diff
-  as one document in KOReader.
-- **Pull request:** when the branch already has one, the Git screen shows it
-  with its checks (✓ ✗ …). Tap a check for its failing steps and annotations;
-  **Re-run the failed checks**, **Ask Claude to fix the failures** (starts a
-  session in the workspace with the failing check names), or **Merge…**
-  (squash, merge commit or rebase).
-- **Files:** browse the checkout and read any file. **Open as book** saves it
-  to `documents/Claude/`; **Ask Claude…** sends a question about it to a session.
-- **Sleep or remove…:** put the workspace to sleep, or remove it (the branch
-  is kept).
-
-<p>
-  <img src="docs/screenshots/git.png" width="260" alt="Git screen of a workspace">
-</p>
-
-### Home cards
-
-Tools → Orca → **Home cards…** lists Home's cards in order. Tap one to hide
-it on Home or on the sleep screen, or to move it up or down; the sleep
-picture uses the same order and leaves out what doesn't fit, so this is how
-you choose what it keeps (for example, hide **Continue reading** there to
-make room for the GitHub calendar). Pull requests, Activity and From Claude
-are Home-only. **Back to the default** undoes it all.
-
-### Claude status on the sleep screen
-
-With **Claude status on the sleep screen** on, the sleeping Kindle shows a
-picture drawn from Home's cards: the question a session is waiting on (with
-its answer choices), Claude's 5-hour and weekly limits, the sessions with an
-agent at work, the book you're reading, and your reading (and, when there's
-room, GitHub) heatmap, with the time it was drawn.
-
-<p>
-  <img src="docs/screenshots/sleep.png" width="260" alt="Claude status on the sleep screen">
-</p>
-
-A Kindle draws its sleep screen before plugins hear about the suspend, so
-the plugin redraws the picture every 5 minutes while the Kindle is awake and
-points KOReader's sleep screen at it (a random image from a folder that
-holds only this picture). KOReader's sleep message is kept up to date as
-well and takes over if the picture can't be drawn. Turning the option off
-restores your previous sleep screen settings.
-
-When the picture shows a question, waking the Kindle opens Orca on it, so
-answering is one tap (Tools → Orca → **Open the question when I wake the
-Kindle** turns this off). It doesn't open over Orca's own screens or over a
-popup that already asks the question; a "finished" popup waits underneath.
-
-### Account and usage
-
-**Account and usage** (the **Usage** tab) shows the 5-hour and
-weekly limits with when they reset, and Orca's totals: agents started, pull
-requests and agent time. When you have more than one Claude account in Orca,
-it lists them too: tap one to make new sessions use it (or go back to
-**System default**, the login on your PC).
-
-<p>
-  <img src="docs/screenshots/account.png" width="260" alt="Account and usage screen">
-</p>
-
-**Automations** (its own tab) lists Orca's scheduled agent runs, with **Run now** and
-on/off, for desktops that allow it. Current Orca builds keep automations from
-mobile clients; the screen then says so.
-
-### Recent conversations
-
-**Conversations** (the **Chats** tab) lists your latest agent conversations across all projects, with their size in
-tokens. Open one to see its latest messages, read them as a book, or
-**Continue on desktop**, which runs `claude --resume` in that project's
-workspace and opens it on the Kindle.
-
-### Get notified while you read
-
-With **Notify me while I read** on, the plugin subscribes to Orca's
-notification stream, so a popup appears over your book the moment a session
-hits a permission prompt or finishes its work (when the stream isn't
-available it falls back to checking every 30 s). For a prompt, the popup
-shows the question itself with **1 2 3 Esc** buttons, so you can answer
-without leaving the book; **Open** goes straight to that session. When the
-Kindle wakes up, it catches up on what finished or started waiting while it
-was asleep.
-
-Battery: keeping the stream open costs about 5 mA while the Kindle is awake
-(52 mA with notifications on vs 48 mA off on a Kindle Basic (KT4), Wi-Fi on,
-measured over 8 minutes each), roughly 10% less reading time. Asleep, Wi-Fi
-is off and it costs nothing.
-
-<p>
-  <img src="docs/screenshots/notify-answer.png" width="260" alt="Popup with Claude's question and answer buttons">
-</p>
-
-<p>
-  <img src="docs/screenshots/menu.png" width="260" alt="Orca settings menu in KOReader">
-</p>
-
-### Send a passage to Claude
-
-Select text in any book and the highlight menu gets a **Send to Claude**
-button (named after the agent you picked for new sessions). Pick a preset (**Explain**, **Context**, **Save note**) or type your
-own question. The passage is sent to your last-used session along with the
-book title, author and chapter, and the session view opens so you can read the
-answer.
-
-<p>
-  <img src="docs/screenshots/highlight-menu.png" width="260" alt="Highlight menu with Send to Claude">
-  &nbsp;
-  <img src="docs/screenshots/ask-dialog.png" width="260" alt="Passage dialog with presets">
-</p>
-<p>
-  <img src="docs/screenshots/send-confirm.png" width="260" alt="Confirm which session to send to">
-  &nbsp;
-  <img src="docs/screenshots/pick-session.png" width="260" alt="Choose another session">
-</p>
-
-What arrives in Claude Code:
-
-```
-From Kindle x Orca by Claude, chapter "Kindle × Orca":
-
-"Orca exposes its mobile RPC on"
-
-Explain this passage in a few short paragraphs.
-```
-
-### Send documents from Claude to the Kindle
-
-`tools/send_to_kindle.py` turns Markdown (plans, reviews, reports, diffs) into
-an EPUB that reads well on e-ink and copies it to `documents/Claude/` over
-Tailscale, or over USB when the Kindle is plugged in. In Claude Code, the
-`/send-to-kindle` skill does this for you. `tools/pull_notes.py` brings your
-KOReader highlights and notes back as Markdown.
-
-<p>
-  <img src="docs/screenshots/reader.png" width="260" alt="This README, sent to the Kindle as an EPUB">
-</p>
-
-```sh
-python tools/send_to_kindle.py plan.md --title "Refactor plan"
-git diff main | python tools/send_to_kindle.py - --title "Review: my-branch"
-python tools/pull_notes.py --since 2026-10-01 --out notes.md
-```
-
-## Setup
+## Getting started
 
 You need a jailbroken Kindle with [KOReader](https://github.com/koreader/koreader),
 Tailscale on both the Kindle and the PC, and Orca running on the PC.
@@ -288,13 +77,173 @@ Tailscale on both the Kindle and the PC, and Orca running on the PC.
 6. **Kindle firmware 5.16 or later**: copy the two files in
    [`koreader-patches/`](koreader-patches) (also `koreader-patches.zip` in
    each release) to `koreader/patches/`. Newer firmware draws its status bar
-   (clock, Wi-Fi, battery) with a process KOReader doesn't know about, and it
-   repaints over KOReader's top corners every minute, covering the back
-   button. The patches pause it while KOReader runs and resume it on exit,
-   even after a crash.
+   with a process KOReader doesn't know about, and it repaints over
+   KOReader's top corners every minute; the patches pause it while KOReader
+   runs.
 
+Then open it with Tools → Orca → **Open Orca**. Everything else is in the
+same menu:
+
+<p><img src="docs/screenshots/menu.png" width="300" alt="Tools → Orca menu"></p>
+
+> [!WARNING]
 > The pairing link is a device credential. Keep it out of chats, screenshots
 > and repositories. Revoke it in Orca → Settings → Mobile if it leaks.
+
+## What you can do
+
+### Home
+
+**Open Orca** starts on a dashboard, most urgent first:
+
+| Card | What it shows |
+| --- | --- |
+| **The question waiting for you** | The agent's question as a black card, with its choices as buttons (**1 Yes**, **2 …**, **Esc**) and **Open session**. |
+| **Sessions** | Workspaces with an agent at work: ● Needs you, ◐ Working, ○ Done. |
+| **Your pull requests** | The open ones you authored, across Orca's projects, with their checks (✓ ✕ …). Tap one for its checks, **Merge…**, **Re-run** or **Ask Claude to fix…**. |
+| **Claude usage** | The 5-hour and weekly limits as bars, with when they reset. |
+| **Activity** | Chats today, agents started, pull requests merged this week, agent time. |
+| **This week** | Reading time against the week before, pull requests merged and GitHub contributions, agent time. |
+| **Continue reading** | The book you opened last, with its cover, progress and time read today. |
+| **Reading** | Minutes read per day, from KOReader's statistics, as a heatmap with your streak. |
+| **GitHub** | Your public contribution calendar, drawn the same way. |
+| **From Claude** | Documents Claude sent to the Kindle, **New** until you open them. |
+
+Tabs at the bottom lead to **Workspaces**, **Chats**, **Usage** and
+**Automations**. The last dashboard shows at once while the new one loads,
+and the Kindle's own cards (reading, GitHub, documents) work without the PC.
+
+<img src="docs/screenshots/cards.png" width="220" align="right">
+
+**Home cards…** (Tools → Orca) lets you hide each card on Home or on the sleep
+screen, and change their order: the sleep picture leaves out what doesn't
+fit, so this is also how you choose what it keeps.
+
+<br clear="right">
+
+<details>
+<summary>Where the numbers come from</summary>
+
+- Usage and totals are reused for 5 minutes, conversations for 15 (listing
+  them makes the desktop scan transcripts); **↻** fetches everything again.
+- Pull requests come through Orca, with your desktop's GitHub login, and are
+  reused for 15 minutes.
+- The contribution calendar is GitHub's public page (no token): the Kindle
+  fetches it itself, at most twice a day, and keeps it for offline use. Your
+  GitHub user is the author of your pull requests, or set it in Tools → Orca
+  → **GitHub user**.
+- Orca only reports lifetime totals, so for **This week** the Kindle keeps
+  one snapshot a day and subtracts the one from a week ago. During the first
+  week agent numbers count from the first snapshot.
+
+</details>
+
+### Sessions
+
+<img src="docs/screenshots/workspaces.png" width="220" align="right">
+
+- **Drive a session**: the terminal is resized to the Kindle's width while you
+  look at it (and restored after). Buttons cover what agents ask most: `1 2 3`,
+  `Esc`, `Ctrl-C`, arrows, `Tab`/`S-Tab`, `Enter`, and **Type…** for free text.
+  Swipe down to read what scrolled off; **Rotate** for landscape.
+- **Browse**: the **Workspaces** tab lists every workspace, needs-you first,
+  and each session with its agent's state.
+- **Start something new** (**+**): a workspace with Claude already working on
+  your prompt, one linked to a GitHub issue or PR, a clone from GitHub, or a
+  new empty project.
+- **Conversations** (the **Chats** tab): your latest agent conversations across
+  projects. Read one as a book, or **Continue on desktop** to resume it.
+
+<br clear="right">
+
+### Workspaces, git and pull requests
+
+<img src="docs/screenshots/pr.png" width="220" align="right">
+
+Inside a workspace:
+
+- **Git**: branch and ahead/behind, changed files with their diffs,
+  **Commit…** (the desktop's agent drafts the message), **Commit and push**,
+  **Push**, **Pull**, **Create pull request…** (or a draft), and **Read all
+  changes as a book**.
+- **Pull request**: its checks (✓ ✕ …); tap one for the failing steps and
+  annotations. **Re-run the failed checks**, **Ask Claude to fix…** (a session
+  with the failing checks' names), or **Merge…** (squash, merge or rebase).
+- **Files**: browse and read the checkout. **Open as book**, or **Ask
+  Claude…** about a file.
+- **Sleep or remove…** the workspace (the branch is kept).
+
+<br clear="right">
+
+### While you read
+
+<img src="docs/screenshots/sleep.png" width="220" align="right">
+
+- **Notifications** (**Notify me while I read**): a popup appears over your
+  book the moment a session asks something or finishes, with the question and
+  **1 2 3 Esc**, so you can answer without leaving the page. When the Kindle
+  wakes, it catches up on what happened while it slept.
+- **The sleep screen** (**Claude status on the sleep screen**): the sleeping
+  Kindle shows a picture of Home's cards: the waiting question, usage, sessions,
+  your book and heatmaps, and on Mondays your week. Waking it on a question
+  opens Orca on that question.
+- **Send a passage to Claude**: select text and pick **Send to Claude** in the
+  highlight menu. Choose **Explain**, **Context** or **Save note**, or ask your
+  own question; it goes to your last session with the book, author and chapter.
+
+<br clear="right">
+
+<details>
+<summary>How the sleep screen works, and what notifications cost</summary>
+
+- A Kindle draws its sleep screen before plugins hear about the suspend, so
+  the plugin redraws the picture every 5 minutes while the Kindle is awake
+  and points KOReader's sleep screen at it (a random image from a folder that
+  holds only this picture). KOReader's sleep message is kept up to date too,
+  and shows if the picture can't be drawn. Turning the option off restores
+  your previous sleep screen.
+- Waking on a question doesn't open Orca over its own screens or over a popup
+  that already asks it (Tools → Orca → **Open the question when I wake the
+  Kindle** turns it off).
+- Battery: the notification stream costs about 5 mA while the Kindle is
+  awake (52 mA vs 48 mA on a Kindle Basic, Wi-Fi on), roughly 10% less
+  reading time. Asleep, Wi-Fi is off and it costs nothing.
+
+</details>
+
+<p>
+  <img src="docs/screenshots/highlight-menu.png" width="220">
+  &nbsp;
+  <img src="docs/screenshots/ask-dialog.png" width="220">
+</p>
+
+### Documents both ways
+
+`tools/send_to_kindle.py` turns Markdown (plans, reviews, reports, diffs) into
+an EPUB that reads well on e-ink and copies it to `documents/Claude/`, over
+Tailscale or USB. In Claude Code, the `/send-to-kindle` skill does it for you.
+`tools/pull_notes.py` brings your KOReader highlights and notes back as
+Markdown.
+
+```sh
+python tools/send_to_kindle.py plan.md --title "Refactor plan"
+git diff main | python tools/send_to_kindle.py - --title "Review: my-branch"
+python tools/pull_notes.py --since 2026-10-01 --out notes.md
+```
+
+### Usage, accounts and automations
+
+**Usage** shows the 5-hour and weekly limits and Orca's totals, and with more
+than one Claude account in Orca, lets you pick the one new sessions use.
+**Automations** lists Orca's scheduled agent runs with **Run now** and on/off,
+on desktops that allow it from mobile clients.
+
+### Languages
+
+The plugin follows KOReader's language. It ships in English, Brazilian
+Portuguese and Spanish; a new language is one file in
+[`orca.koplugin/orca/l10n/`](orca.koplugin/orca/l10n), and the tests list any
+string it misses.
 
 ## How it works
 
@@ -315,38 +264,38 @@ Kindle (KOReader)                                   PC
 - **Networking**: 10th-gen Kindles have no TUN device, so `tailscaled` runs in
   userspace mode and apps reach the tailnet through its SOCKS5 proxy on
   `localhost:1055`. The patched Tailscale plugin sets that up, and can also
-  forward local ports so KOReader's own OPDS/Calibre browser can reach the PC
-  (Tailscale → Advanced → Local port forwards).
+  forward local ports so KOReader's OPDS/Calibre browser can reach the PC.
 - **No freezes**: network work runs in coroutines stepped by KOReader's UI
   loop, so the reader stays responsive while waiting on the network.
 
-The plugin's modules (core, API wrappers, UI kit, one file per feature) and
-the design rules for the e-ink UI are described in
+The modules and the design rules for the e-ink UI are in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Repository layout
+## Development
+
+```sh
+luajit tests/run.lua                  # every screen against a fake Orca (also in CI)
+python tools/kindlectl.py deploy      # copy the plugin to the Kindle over SSH
+python tools/kindlectl.py restart     # and restart KOReader
+python tools/kindlectl.py shot out.png
+```
 
 | Path | What |
 | --- | --- |
-| `orca.koplugin/` | KOReader plugin; `main.lua` only wires it together |
-| `orca.koplugin/orca/` | `core/` (settings, jobs, connection), `api/` (Orca RPC wrappers), `ui/` (e-ink UI kit), `features/` (one file per screen or behavior), `render/` (terminal text, diffs), `l10n/` (translations) |
-| `orca.koplugin/orcaclient/` | Orca mobile protocol: WebSocket, NaCl handshake, RPC and streams |
+| `orca.koplugin/` | The KOReader plugin; `main.lua` only wires it together |
+| `orca.koplugin/orca/` | `core/` (settings, jobs, connection, i18n), `api/` (Orca RPC wrappers), `ui/` (e-ink UI kit), `features/` (one file per screen or behavior), `render/` (terminal text, diffs, heatmaps), `l10n/` (translations) |
+| `orca.koplugin/orcaclient/` | Orca's mobile protocol: WebSocket, NaCl handshake, RPC and streams |
 | `tailscale.koplugin/` | Tailscale plugin, patched for kernels without TUN; autostart; port forwards |
-| `koreader-patches/` | KOReader user patches: keep the Kindle's status bar from drawing over KOReader (firmware 5.16+) |
+| `koreader-patches/` | Keep the Kindle's status bar from drawing over KOReader (firmware 5.16+) |
 | `native/tweetnacl/` | NaCl cross-build for armv7 (`build.sh`, needs Zig) |
-| `tools/` | PC side: `kindlectl.py` (screenshot/tap/deploy over SSH; set `KINDLE_HOST`), `send_to_kindle.py`, `pull_notes.py` |
-| `tests/` | `luajit tests/run.lua` runs every screen on a PC against a fake Orca and stubbed KOReader (also in CI); `tests/device/` scripts run on the Kindle, and `rpc_probe.lua` there calls the real desktop |
-| `.claude/skills/` | `send-to-kindle` skill for Claude Code |
+| `tools/` | PC side: `kindlectl.py` (screenshot, tap, deploy over SSH; set `KINDLE_HOST`), `send_to_kindle.py`, `pull_notes.py`, `screenshots/` (demo data and the cover) |
+| `tests/` | PC tests with a fake Orca and stubbed KOReader; `tests/device/` runs on the Kindle, and `rpc_probe.lua` there calls the real desktop |
+| `.claude/skills/` | The `send-to-kindle` skill for Claude Code |
 
-## Tested on
-
-Kindle Basic (KT4, 10th gen), firmware 5.18.1.1.1, KOReader 2026.07.1, Orca
-desktop on Windows 11. The plugin follows KOReader's language: it ships in
-English, Brazilian Portuguese and Spanish (`orca.koplugin/orca/l10n/`; a new
-language is one more file there, and `luajit tests/run.lua` lists any string
-it misses). Other Kindles that run KOReader should work. The
-touch-injection tool (`kindlectl`) may need its profile adjusted on other
-models (see `tools/README.md`).
+**Tested on** a Kindle Basic (KT4, 10th gen), firmware 5.18.1.1.1, KOReader
+2026.07.1, with Orca on Windows 11. Other Kindles that run KOReader should
+work; `kindlectl`'s touch profile may need adjusting (see
+[tools/README.md](tools/README.md)).
 
 ## License
 
