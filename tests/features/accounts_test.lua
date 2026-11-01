@@ -64,6 +64,25 @@ H.test("switching accounts is confirmed and sent once", function()
     H.eq(#t.called("accounts.list"), 2, "reloaded")
 end)
 
+H.test("Codex gets its own usage and accounts when it has accounts", function()
+    local snap = snapshot()
+    snap.codex = { accounts = { { id = "c1", email = "will@openai.com" }, { id = "c2", email = "team@openai.com" } },
+                   activeAccountId = "c1" }
+    snap.rateLimits.codex = { session = { usedPercent = 10, resetDescription = "at 5pm" } }
+    local _, t = opened{ ["accounts.list"] = snap, ["accounts.selectCodex"] = { accounts = {} } }
+    local titles = {}
+    for i, sec in ipairs(t.top().sections) do titles[i] = sec.title end
+    H.eq(table.concat(titles, " | "), "Claude usage | Claude accounts | Codex usage | Codex accounts | Orca")
+    local codex = t.top().sections[3].rows
+    H.eq(codex[1].title, "5-hour limit: 10% used")
+    H.eq(codex[1].detail, "resets at 5pm")
+    t.tap("team@openai.com")
+    H.eq(t.lastCard().text, "New Codex sessions will use this account. Running sessions keep theirs.")
+    t.press("Switch")
+    H.eq(t.lastCall("accounts.selectCodex").params.accountId, "c2")
+    H.eq(#t.called("accounts.selectClaude"), 0)
+end)
+
 H.test("System default sends a null account id", function()
     local api = require("orca.api.accounts")
     local _, t = opened()

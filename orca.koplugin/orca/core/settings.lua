@@ -13,6 +13,7 @@ Settings.DEFAULTS = {
     sleep_status = false,          -- Claude status on the sleep screen
     fit_viewport = true,           -- resize the desktop terminal to the Kindle
     live_updates = true,           -- refresh the session view on output
+    session_history = true,        -- fit a few screens tall, so swiping up shows earlier output
     font_size = 14,                -- terminal font, px
     refresh_interval = 10,         -- s between refreshes when live updates are off
     use_proxy = true,              -- reach the desktop through Tailscale's SOCKS5 proxy

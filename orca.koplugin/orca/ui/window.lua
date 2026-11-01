@@ -47,10 +47,7 @@ local Window = InputContainer:extend{
 
 function Window:init()
     self.stack = self.stack or {}
-    self.dimen = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() }
-    self.ges_events = {
-        Swipe = { GestureRange:new{ ges = "swipe", range = self.dimen } },
-    }
+    self:fitScreen()
     if Device:hasKeys() then
         self.key_events = {
             Close = { { "Back" } },
@@ -59,6 +56,23 @@ function Window:init()
         }
     end
     self[1] = FrameContainer:new{ bordersize = 0, padding = 0, background = style.color.page }
+end
+
+function Window:fitScreen()
+    self.dimen = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() }
+    self.ges_events = {
+        Swipe = { GestureRange:new{ ges = "swipe", range = self.dimen } },
+    }
+end
+
+-- Rotation is broadcast top-down, so the screen hasn't turned yet when we
+-- get it: lay out again once whoever turns it has.
+function Window:onSetRotationMode()
+    UIManager:nextTick(function()
+        if not UIManager:isWidgetShown(self) then return end
+        self:fitScreen()
+        self:render()
+    end)
 end
 
 function Window:top()

@@ -7,7 +7,10 @@
     every few seconds and after each key. Fitting asks the desktop to resize
     the terminal to the Kindle while the view is open (the subscription's
     viewport); when someone types or resizes on the desktop it takes the size
-    back, and the next key from the Kindle claims it again.
+    back, and the next key from the Kindle claims it again. With history on,
+    the terminal is made a few screens taller than the Kindle: the rendered
+    screen is the only clean text Orca has (its stream repeats every redraw),
+    so the extra rows are what you see when you swipe up.
 
     Errors show in the text area: a popup over a terminal you're watching
     hides the very thing you're looking at.
@@ -37,6 +40,8 @@ local SCROLLBACK = 200    -- lines read when the desktop can't render the screen
 -- later, and dropping its subscription gives the terminal back its desktop
 -- size. Claim the Kindle's size again once that cleanup has happened.
 local RECLAIM_AFTER = { 20, 45 }
+local HISTORY_SCREENS = 3 -- terminal height in Kindle screens, with history on
+local MAX_ROWS = 500
 
 local KEY_BYTES = {
     ["1"] = "1", ["2"] = "2", ["3"] = "3",
@@ -88,6 +93,8 @@ function Session:open(term, wt)
     local settings = self.app.settings
     local handle = util.str(term.handle)
     local s = {
+        term = term,
+        wt = wt,
         handle = handle,
         title = util.str(term.title) ~= "" and util.str(term.title) or handle,
         workspace = workspaceName(term, wt),
@@ -105,8 +112,12 @@ function Session:open(term, wt)
         on_key = function(id) self:key(s, id) end,
         on_refresh = function() self:refresh(s) end,
         on_close = function() self:finish(s) end,
+        on_resize = function() self:reopen(s) end,
     }
     s.viewport = s.view:viewport()
+    if s.fit and settings:get("session_history") then
+        s.viewport.rows = math.min(s.viewport.rows * HISTORY_SCREENS, MAX_ROWS)
+    end
     self.app.connection:keepAlive(self.app.jobs, "session", true)
 
     self.app:run{
@@ -236,6 +247,7 @@ end
 function Session:key(s, id)
     if s ~= self.current then return end
     if id == "type" then return self:type(s) end
+    if id == "rotate" then return s.view:rotate() end
     if id == "ctrl-c" then return self:send(s, { interrupt = true }) end
     if id == "enter" then return self:send(s, { text = "", enter = true }) end
     local bytes = KEY_BYTES[id]
@@ -339,6 +351,14 @@ function Session:finish(s)
             end,
         }
     end
+end
+
+-- The screen turned: a new view at the new size, subscribed with its
+-- viewport (the old subscription ends first).
+function Session:reopen(s)
+    if s ~= self.current then return end
+    self.app.log("session: screen rotated; reopening")
+    self:open(s.term, s.wt)
 end
 
 function Session:close()

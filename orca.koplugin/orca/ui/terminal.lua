@@ -5,10 +5,12 @@
         local view = Terminal.new{ title, subtitle, font_size,
                                    on_key = function(id) end,  -- see Terminal.KEYS
                                    on_close = function() end,  -- once, however it closed
-                                   on_refresh = function() end }
+                                   on_refresh = function() end,
+                                   on_resize = function() end }  -- after a rotation
         view:setText(text)      -- keeps the scroll position unless at the bottom
         view:setSubtitle(s)
         view:viewport()         -- { cols, rows } of text that fit
+        view:rotate()           -- portrait <-> landscape
         view:close()
 
     E-ink: only the text area is refreshed on updates ("ui"), with a
@@ -17,6 +19,7 @@
 
 local CenterContainer = require("ui/widget/container/centercontainer")
 local Device = require("device")
+local Event = require("ui/event")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
 local InputContainer = require("ui/widget/container/inputcontainer")
@@ -42,7 +45,7 @@ local KEYS = {
       { id = "esc", text = "Esc" }, { id = "ctrl-c", text = "Ctrl-C" } },
     { { id = "up", text = "↑" }, { id = "down", text = "↓" }, { id = "tab", text = "Tab" },
       { id = "shift-tab", text = "S-Tab" }, { id = "enter", text = "Enter" } },
-    { { id = "type", text = _("Type…"), primary = true } },
+    { { id = "type", text = _("Type…"), primary = true }, { id = "rotate", text = _("Rotate") } },
 }
 
 local View = InputContainer:extend{
@@ -53,6 +56,7 @@ local View = InputContainer:extend{
     on_key = nil,
     on_close = nil,
     on_refresh = nil,
+    on_resize = nil,
 }
 
 function View:init()
@@ -189,6 +193,22 @@ function View:viewport()
         cols = math.max(20, math.min(cols, 1024)),
         rows = math.max(8, math.min(rows, 500)),
     }
+end
+
+-- KOReader's own rotation: whoever owns the screen (file browser or
+-- reader) turns it and relays out underneath us.
+function View:rotate()
+    -- Linux framebuffer modes: portrait ones are even, landscape ones odd.
+    local mode = Screen:getRotationMode() % 2 == 0 and 1 or 0
+    UIManager:broadcastEvent(Event:new("SetRotationMode", mode))
+end
+
+-- Broadcast top-down: the screen turns after we're told, so the session
+-- rebuilds the view (new size, new viewport) on the next tick.
+function View:onSetRotationMode()
+    UIManager:nextTick(function()
+        if not self.closed and self.on_resize then self.on_resize() end
+    end)
 end
 
 function View:onClose()

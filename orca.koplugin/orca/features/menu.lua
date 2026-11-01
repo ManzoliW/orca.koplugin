@@ -88,6 +88,13 @@ function Menu.items(app, plugin)
                         callback = function() settings:flip("fit_viewport") end,
                     },
                     {
+                        text = _("Keep earlier output"),
+                        help_text = _("Makes the terminal a few screens taller than the Kindle while you view it, so you can swipe up to read what scrolled off. Takes effect the next time you open a session."),
+                        enabled_func = function() return settings:get("fit_viewport") end,
+                        checked_func = function() return settings:get("session_history") end,
+                        callback = function() settings:flip("session_history") end,
+                    },
+                    {
                         text = _("Live updates"),
                         help_text = _("Refresh the screen when the session prints something. Off: refresh after you press a key, and every few seconds."),
                         checked_func = function() return settings:get("live_updates") end,

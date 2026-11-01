@@ -18,6 +18,7 @@ function FakeView:close()
     if self.opts.on_close then self.opts.on_close() end
 end
 function FakeView:press(id) self.opts.on_key(id) end
+function FakeView:rotate() self.rotated = true end
 
 local TERM = { handle = "t1", title = "Claude" }
 
@@ -49,7 +50,7 @@ H.test("opening subscribes with the Kindle's viewport and shows the screen", fun
     H.eq(sub.params.client.id, "kindle-test")
     H.eq(sub.params.client.type, "desktop")
     H.eq(sub.params.viewport.cols, 60)
-    H.eq(sub.params.viewport.rows, 30)
+    H.eq(sub.params.viewport.rows, 90, "three screens tall, for swiping back")
     H.eq(t.lastCall("terminal.read").params.screen, true)
     H.has(view.text, "Do you want to proceed?")
     H.eq(view.opts.title, "Claude")
@@ -65,6 +66,30 @@ H.test("no fit and no live updates: no subscription", function()
     H.has(view.text, "1. Yes")
     app.session:close()
     H.eq(#t.called("terminal.unsubscribe"), 0)
+end)
+
+H.test("without history the terminal is just the Kindle's height", function()
+    local app, t = open({ settings = { pairing_url = "x", session_history = false } })
+    H.eq(t.lastCall("terminal.subscribe").params.viewport.rows, 30)
+    app.session:close()
+end)
+
+H.test("Rotate turns the screen, and the view is rebuilt at the new size", function()
+    local app, t, view = open()
+    view:press("rotate")
+    H.eq(view.rotated, true)
+    H.eq(#t.called("terminal.send"), 0)
+    FakeView.viewport = function() return { cols = 90, rows = 20 } end
+    view.opts.on_resize(); t.settle()
+    FakeView.viewport = function() return { cols = 60, rows = 30 } end
+    H.eq(view.closed, true)
+    H.eq(t.lastCall("terminal.unsubscribe").params.subscriptionId, "t1:kindle-test")
+    local sub = t.lastCall("terminal.subscribe")
+    H.eq(sub.params.viewport.cols, 90)
+    H.eq(sub.params.viewport.rows, 60)
+    H.eq(app.session:isShowing("t1"), true)
+    H.eq(FakeView.last.opts.title, "Claude")
+    app.session:close()
 end)
 
 H.test("keys are sent once each with the right bytes", function()
