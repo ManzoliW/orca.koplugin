@@ -7,9 +7,14 @@
         local _ = require("orca.core.i18n")
         _("Home")                        -- "Início" in pt_BR
         _.date("%a %d %b", t)            -- os.date with translated day and month names
+        _.ago(t)                         -- "5 min ago", "yesterday", "31/10"
+        _.number(1234)                   -- "1,234"; "1.234" in pt_BR
 --]]
 
 local GetText = require("gettext")
+local T = require("ffi/util").template
+
+local util = require("orca.core.util")
 
 local catalogs = {}   -- lang -> table, or false when there is none
 
@@ -39,6 +44,25 @@ function i18n.date(fmt, t)
     fmt = fmt:gsub("%%a", (days[d.wday]:gsub("%%", "%%%%")))
              :gsub("%%b", (months[d.month]:gsub("%%", "%%%%")))
     return os.date(fmt, t)
+end
+
+-- Epoch seconds or milliseconds or ISO string -> "5 min ago", "yesterday", "31/10".
+function i18n.ago(when, now)
+    local t = type(when) == "string" and util.isoTime(when) or tonumber(when)
+    if not t then return "" end
+    if t > 1e11 then t = t / 1000 end
+    local s = (now or os.time()) - t
+    if s < 60 then return _("now") end
+    if s < 3600 then return T(_("%1 min ago"), math.floor(s / 60)) end
+    if s < 86400 then return T(_("%1 h ago"), math.floor(s / 3600)) end
+    if s < 2 * 86400 then return _("yesterday") end
+    return os.date("%d/%m", math.floor(t))
+end
+
+function i18n.number(n)
+    -- The thousands separator, as each language writes it.
+    local sep = _(",")
+    return (util.thousands(n):gsub(",", (sep:gsub("%%", "%%%%"))))
 end
 
 return setmetatable(i18n, { __call = function(_self, msgid) return _(msgid) end })

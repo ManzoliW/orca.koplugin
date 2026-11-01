@@ -95,19 +95,6 @@ function util.isoTime(iso)
     return t + utc_offset
 end
 
--- Epoch seconds or milliseconds or ISO string -> "5 min ago", "yesterday", "31/10".
-function util.ago(when, now)
-    local t = type(when) == "string" and util.isoTime(when) or tonumber(when)
-    if not t then return "" end
-    if t > 1e11 then t = t / 1000 end
-    local s = (now or os.time()) - t
-    if s < 60 then return "now" end
-    if s < 3600 then return string.format("%d min ago", math.floor(s / 60)) end
-    if s < 86400 then return string.format("%d h ago", math.floor(s / 3600)) end
-    if s < 2 * 86400 then return "yesterday" end
-    return os.date("%d/%m", math.floor(t))
-end
-
 function util.mutationId(kind)
     return string.format("kindle-%s:%x:%06x", kind, os.time(), math.random(0, 0xffffff))
 end

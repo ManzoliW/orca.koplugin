@@ -37,6 +37,12 @@ first:
   day you last read) and this month's total.
 - **GitHub**: your contribution calendar from github.com, drawn the same way
   right below, so coding and reading sit side by side.
+- **This week**: reading time (on how many days, and against the week
+  before), pull requests merged with your GitHub contributions, and agent
+  time with the agents started. Orca only keeps lifetime totals, so the
+  Kindle remembers each day's and subtracts the ones from a week ago; for the
+  first week the agent numbers count from the day you installed this. On
+  Mondays the sleep picture shows this card too.
 - **From Claude**: the newest files in `documents/Claude/` (diffs, files and
   conversations you opened as books), marked **New** until you open them.
 - **Tabs** at the bottom: Home, Workspaces, Chats, Usage and Automations.

@@ -126,7 +126,7 @@ function GitHub:prRow(pr)
     local checks = CHECKS[util.str(pr.checksStatus)]
     local parts = { T("%1 #%2", pr.repoName, pr.number) }
     if checks then table.insert(parts, checks.word) end
-    local ago = util.ago(pr.updatedAt, os.time())
+    local ago = _.ago(pr.updatedAt, os.time())
     if ago ~= "" then table.insert(parts, ago) end
     return {
         glyph = checks and checks.glyph or " ",
@@ -166,7 +166,7 @@ function GitHub:sections()
     end
     local cal = self:calendar()
     if cal then
-        local parts = { T(_("%1 contributions in the last year"), util.thousands(cal.total)) }
+        local parts = { T(_("%1 contributions in the last year"), _.number(cal.total)) }
         local streak = heat.streak(cal.days, os.time())
         if streak > 1 then table.insert(parts, T(_("%1-day streak"), streak)) end
         out.calendar = {

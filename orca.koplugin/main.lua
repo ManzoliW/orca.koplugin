@@ -57,6 +57,7 @@ local FEATURES = {
     sleep = "orca.features.sleepscreen",
     passage = "orca.features.passage",
     github = "orca.features.github",
+    week = "orca.features.week",
 }
 
 local Orca = WidgetContainer:extend{

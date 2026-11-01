@@ -158,7 +158,7 @@ end
 function Automations:runRow(run, names)
     local status = RUN_STATUS[util.str(run.status)] or { glyph = " ", label = util.str(run.status) }
     local when = util.num(run.startedAt) > 0 and run.startedAt or run.scheduledFor
-    local parts = { util.ago(when) }
+    local parts = { _.ago(when) }
     if util.str(run.trigger) == "manual" then table.insert(parts, _("run by hand")) end
     local where = workspaceLabel(run.workspaceId, names, run.workspaceDisplayName)
     if where then table.insert(parts, where) end
@@ -213,7 +213,7 @@ function Automations:detailScreen(a, runs, names)
         table.insert(facts, { title = _("Next run"), detail = Automations.inText(a.nextRunAt) })
     end
     if util.num(a.lastRunAt) > 0 then
-        table.insert(facts, { title = _("Last run"), detail = util.ago(a.lastRunAt) })
+        table.insert(facts, { title = _("Last run"), detail = _.ago(a.lastRunAt) })
     end
 
     local actions = {

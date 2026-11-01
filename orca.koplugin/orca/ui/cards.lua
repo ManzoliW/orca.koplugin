@@ -9,6 +9,8 @@
         One line per limit: label, a bar, the percentage and a dim detail.
     card = { type = "tiles", items = { {value, label, callback}, ... } }
         Big numbers side by side.
+    card = { type = "figures", items = { {value, label, note, callback}, ... } }
+        Big numbers down the page, each with its label and a dim note.
     card = { type = "book", title, authors, percent, detail, cover = function(w, h), callback }
         A book with its cover and progress.
     card = { type = "heatmap", values = { ["YYYY-MM-DD"] = n }, caption, now, callback }
@@ -169,6 +171,31 @@ function cards.tiles(card, width)
         table.insert(group, tappable(tile, item.callback))
     end
     return group
+end
+
+function cards.figures(card, width)
+    local pad = style.space.l
+    local value_w = math.floor((width - 2 * pad) * 0.3)
+    local text_w = width - 2 * pad - value_w - style.space.m
+    local column = VerticalGroup:new{ align = "left" }
+    for _, item in ipairs(card.items or {}) do
+        local words = VerticalGroup:new{ align = "left", kit.text(item.label or "", "row", { max_width = text_w }) }
+        if item.note and item.note ~= "" then
+            table.insert(words, kit.text(item.note, "detail", { dim = true, max_width = text_w }))
+        end
+        local line = HorizontalGroup:new{
+            align = "center",
+            HorizontalSpan:new{ width = pad },
+            LeftContainer:new{
+                dimen = Geom:new{ w = value_w, h = style.row_height },
+                kit.text(item.value or "–", "stat", { bold = true, max_width = value_w }),
+            },
+            HorizontalSpan:new{ width = style.space.m },
+            words,
+        }
+        table.insert(column, tappable(line, item.callback))
+    end
+    return column
 end
 
 --[[

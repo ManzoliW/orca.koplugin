@@ -303,7 +303,7 @@ function Home:kindleSections(kindle)
             else
                 table.insert(parts, book.percent and T(_("%1% read"), book.percent) or _("New"))
             end
-            local ago = util.ago(book.time, os.time())
+            local ago = _.ago(book.time, os.time())
             if ago ~= "" then table.insert(parts, ago) end
             table.insert(rows, {
                 title = book.title,
@@ -339,6 +339,8 @@ function Home:dashboard(data, extras, updating)
     if gauges then table.insert(sections, { title = _("Claude usage"), card = gauges }) end
     local tiles = self:tilesCard(extras)
     if tiles then table.insert(sections, { title = _("Activity"), card = tiles }) end
+    local week = self.app.week and self.app.week:section(self.kindle, extras.stats)
+    if week then table.insert(sections, week) end
     -- The book, then the reading and GitHub heatmaps together.
     for _i, section in ipairs(self:kindleSections(self.kindle)) do table.insert(sections, section) end
 
@@ -410,6 +412,7 @@ function Home:loadExtras(page, force)
                 extras.at = now
                 extras.usage = r.usage or extras.usage
                 extras.stats = r.stats or extras.stats
+                if r.stats and self.app.week then self.app.week:record(r.stats) end
             end
             if want_chats and r.chats then
                 extras.chats_at = now

@@ -214,7 +214,7 @@ function H.app(opts)
     }
     for _, name in ipairs(opts.features or {
         "home", "workspace", "session", "create", "git", "files", "conversations",
-        "notify", "accounts", "automations", "sleep", "passage", "github" }) do
+        "notify", "accounts", "automations", "sleep", "passage", "github", "week" }) do
         local module = name == "sleep" and "orca.features.sleepscreen" or ("orca.features." .. name)
         local ok, mod = pcall(require, module)
         if ok then

@@ -67,8 +67,13 @@ H.test("the language KOReader runs in picks the catalog; others keep KOReader's"
     GetText.current_lang = "pt_BR"
     H.eq(_("Continue reading"), "Continuar lendo")
     H.eq(_.date("%a %d %b", os.time{ year = 2026, month = 11, day = 1, hour = 12 }), "Dom 01 nov")
+    H.eq(_.ago(os.time() - 300), "há 5 min")
+    H.eq(_.ago(os.time() - 30 * 3600), "ontem")
+    H.eq(_.number(1234567), "1.234.567")
     GetText.current_lang = "de"
     H.eq(_("Continue reading"), "Continue reading")
     GetText.current_lang = "C"
+    H.eq(_.number(1234567), "1,234,567")
+    H.eq(_.ago(os.time() - 300), "5 min ago")
     H.eq(_.date("%a %d %b", os.time{ year = 2026, month = 11, day = 1, hour = 12 }), "Sun 01 Nov")
 end)

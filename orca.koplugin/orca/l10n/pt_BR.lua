@@ -36,6 +36,10 @@ return {
     ["Jan"] = "jan", ["Feb"] = "fev", ["Mar"] = "mar", ["Apr"] = "abr",
     ["May"] = "mai", ["Jun"] = "jun", ["Jul"] = "jul", ["Aug"] = "ago",
     ["Sep"] = "set", ["Oct"] = "out", ["Nov"] = "nov", ["Dec"] = "dez",
+    ["%1 min ago"] = "há %1 min",
+    ["%1 h ago"] = "há %1 h",
+    ["yesterday"] = "ontem",
+    [","] = ".",     -- the thousands separator
 
     -- features/accounts.lua
     ["%1 accounts"] = "Contas do %1",
@@ -460,6 +464,17 @@ return {
     ["now"] = "agora",
     ["usage: %1"] = "uso: %1",
     ["working"] = "trabalhando",
+
+    -- features/week.lua
+    ["%1 of 7 days"] = "%1 de 7 dias",
+    ["%1 more than the week before"] = "%1 a mais que na semana anterior",
+    ["%1 less than the week before"] = "%1 a menos que na semana anterior",
+    ["Pull requests merged"] = "Pull requests com merge",
+    ["%1 contributions on GitHub"] = "%1 contribuições no GitHub",
+    ["GitHub contributions"] = "Contribuições no GitHub",
+    ["%1 agents started"] = "%1 agentes iniciados",
+    ["since %1"] = "desde %1",
+    ["This week"] = "Esta semana",
 
     -- features/workspace.lua
     ["%1 session…"] = "Sessão do %1…",

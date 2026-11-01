@@ -7,7 +7,7 @@
 
     It is drawn as a picture: Home's cards (the question a session is
     waiting on, usage, sessions, the book you're reading, the reading and
-    GitHub heatmaps) in a PNG the size of the screen, in a folder of its own that KOReader's "random image" sleep
+    GitHub heatmaps; on Mondays, the week before) in a PNG the size of the screen, in a folder of its own that KOReader's "random image" sleep
     screen picks from. KOReader's sleep message is kept up to date too, and
     is what shows if the picture can't be drawn.
 
@@ -185,6 +185,8 @@ function Sleep:posterSpec(r)
     local app, home = self.app, self.app.home
     local sections = {}
     if home and r.waiting then table.insert(sections, { card = home:heroCard(r.waiting, true) }) end
+    local week = r.stats and app.week and app.week:section(home and home:loadKindle(), r.stats)
+    if week then table.insert(sections, week) end
     local gauges = home and home:gaugesCard(r.usage)
     if gauges then
         gauges.callback = nil
@@ -254,13 +256,16 @@ function Sleep:refresh()
             end
             local states = c:agentStates() or {}
             local waiting = app.home and app.home.findWaiting(c, {}, states)
-            return { usage = usage, states = states, latest = latest, waiting = waiting }
+            -- Mondays look back at the week.
+            local stats = os.date("*t").wday == 2 and c:call("stats.summary", nil, common.TIMEOUT.slow) or nil
+            return { usage = usage, states = states, latest = latest, waiting = waiting, stats = stats }
         end,
         done = function(r)
             if not r then return end
             if refresh_usage then self.usage_fetched_at = os.time() end
             self.latest = r.latest
             self.waiting = r.waiting
+            if r.stats and app.week then app.week:record(r.stats) end
             G_reader_settings:saveSetting("screensaver_message", self:message(r.usage, r.states, r.latest))
             if not self:drawImage(r) then self:useMessage() end
         end,
