@@ -8,7 +8,7 @@ follows KOReader's lifecycle; everything else lives under `orca/`:
 | `orca/core/` | `util` (pure helpers), `settings` (keys and defaults), `jobs` (coroutine queue), `connection` (client, reconnect hooks, stream routing, keep-alive), `shell` (quoting for desktop commands) | nothing from KOReader's UI |
 | `orca/api/` | Orca RPC calls returning plain data: `api.git.status(c, wt)` | the client |
 | `orca/render/` | pure text helpers: `ansi` (escape codes, prompt excerpt, choices), `diff` | nothing |
-| `orca/ui/` | `style` (design tokens), `kit` (rows, headers, title bar, buttons), `window` (the screen stack), `dialog` (cards: confirm, sheet, alert, toast), `text` (keyboard input, long text, open as book) | KOReader widgets |
+| `orca/ui/` | `style` (design tokens), `kit` (rows, headers, title bar, tabs, buttons), `cards` (dashboard blocks: hero, gauges, tiles), `window` (the screen stack), `dialog` (cards: confirm, sheet, alert, toast), `text` (keyboard input, long text, open as book) | KOReader widgets |
 | `orca/features/` | one module per area: `home`, `workspace`, `session`, `create`, `git`, `files`, `conversations`, `notify`, `accounts`, `automations`, `sleepscreen`, `passage`, `menu` | `app` |
 | `orcaclient/` | WebSocket + NaCl transport for Orca's mobile protocol | LuaSocket, libtweetnacl |
 
@@ -28,7 +28,7 @@ Every feature is a class built with `Feature.new(app)` and stored on the app
 - `app.dialog`: `card`, `confirm`, `sheet`, `alert`, `toast`, `close`, `isShown`.
 - `app.text`: `ask` (keyboard), `read` (long text), `book`; `app:openAsBook(name, text)`.
 - `app.connection`: `stream(c, method, params, handler)`, `stopStream(c, id)`, `onConnect(key, fn)`, `keepAlive(jobs, key, on)`, `pump(jobs)`, `reset()`.
-- `app:agent()`, `app:agentName()`, `app:explain(err)`, `app:fail(err, retry)`, `app:toast(text)`, `app.online(fn)`, `app.now()`.
+- `app:agent()`, `app:agentName()`, `app:explain(err)`, `app:fail(err, retry)`, `app:toast(text)`, `app.online(fn)`, `app.now()` (monotonic seconds for timers; dates and "ago" need `os.time()`).
 
 ## Screens
 
@@ -40,6 +40,8 @@ A screen is data; `ui/window.lua` draws it:
     refresh = function() … end,          -- ↻ in the title bar
     add = function() … end,              -- + in the title bar
     sections = { { title = "Sessions", rows = { row, … } }, … },
+                                         -- or { title, card = card }: ui/cards.lua
+    tabs = { { text, callback, selected }, … },  -- tab bar at the bottom
     empty = "No sessions running here.", -- shown when there are no rows
     loading = "Loading sessions…",       -- shown instead of rows
     on_close = function() … end,
@@ -49,7 +51,8 @@ row = { glyph, title, subtitle, detail, bold, chevron, dim, mono, truncate_left,
 ```
 
 The usual load pattern: push a `loading` screen, then `page:set(spec)` when the
-job finishes (see `features/home.lua`).
+job finishes (see `features/home.lua`, which also draws its last dashboard
+first and fills in slower data from a background job).
 
 ## Design rules
 
@@ -63,6 +66,7 @@ From Apple's HIG, adapted to grayscale e-ink (see `orca/ui/style.lua`):
 - Errors say what happened and what to do (`app:explain`). Empty screens say what's missing and the next step.
 - Progress text names the action: "Pushing to origin…", not "Loading…".
 - One popup at a time. Touch targets are at least 48 px.
+- Black, white and light grays only. `Blitbuffer.gray(level)` is darkness (1 is black), so light tokens have small levels.
 - Labels use the agent's name (`app:agentName()`), not a hardcoded "Claude".
 
 ## Tests

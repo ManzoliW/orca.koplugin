@@ -22,6 +22,7 @@ style.size = {
     body = 18,      -- dialog text
     detail = 16,    -- subtitles, right-hand values, section headers
     button = 18,
+    stat = 28,      -- dashboard numbers, bold
 }
 
 function style.face(role, bold)
@@ -51,11 +52,12 @@ function style.mono(size)
     return MONO_FILE and Font:getFace(MONO_FILE, size) or Font:getFace("smallinfont", size)
 end
 
+-- Blitbuffer.gray(level) is darkness: 0 is white, 1 is black.
 style.color = {
     text = Blitbuffer.COLOR_BLACK,
     dim = Blitbuffer.gray(0.55),
-    line = Blitbuffer.gray(0.75),
-    faint = Blitbuffer.gray(0.88),
+    line = Blitbuffer.gray(0.3),
+    faint = Blitbuffer.gray(0.15),
     page = Blitbuffer.COLOR_WHITE,
     inverse = Blitbuffer.COLOR_WHITE,
 }

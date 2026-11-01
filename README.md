@@ -14,11 +14,35 @@ captured over SSH with [`tools/kindlectl.py`](tools/README.md).
 
 ## What you can do
 
+### Home
+
+**Open Orca** starts on a dashboard that answers "does anything need me?"
+first:
+
+- **The session waiting for you**, drawn as a black card with the agent's
+  question and its choices as buttons (**1 Yes**, **2 …**, **Esc**), so you
+  can answer from Home, or **Open session**.
+- **Workspaces with an agent at work**, as ● Needs you, ◐ Working and ○ Done.
+- **Claude usage**: the 5-hour and weekly limits as bars, with when they reset.
+- **Activity**: conversations touched today, agents started, pull requests
+  and agent time. Tap a number for the screen behind it.
+- **Tabs** at the bottom: Home, Workspaces, Chats, Usage and Automations.
+
+The last dashboard shows straight away while the new one loads ("Updating…").
+Usage and totals are reused for 5 minutes and conversations for 15, since
+listing conversations makes the desktop scan transcripts on disk; ↻ fetches
+everything again.
+
+<p>
+  <img src="docs/screenshots/home.png" width="260" alt="Home dashboard">
+</p>
+
 ### Browse workspaces and sessions
 
-Workspaces are grouped by what needs attention first (**● Needs you**,
-**◐ Working**, **○ Done**), and each session shows its agent's state. Tap a
-row to go in, **‹** to go back, swipe or use the page buttons to turn pages.
+The **Workspaces** tab lists every workspace, grouped by what needs attention
+first (**● Needs you**, **◐ Working**, **○ Done**), and each session shows its
+agent's state. Tap a row to go in, **‹** to go back, swipe or use the page
+buttons to turn pages.
 
 <p>
   <img src="docs/screenshots/workspaces.png" width="260" alt="Workspace list">
@@ -102,7 +126,7 @@ tokens. Turning the option off restores your previous sleep message.
 
 ### Account and usage
 
-**Account and usage** (last page of the workspace list) shows the 5-hour and
+**Account and usage** (the **Usage** tab) shows the 5-hour and
 weekly limits with when they reset, and Orca's totals: agents started, pull
 requests and agent time. When you have more than one Claude account in Orca,
 it lists them too: tap one to make new sessions use it (or go back to
@@ -112,14 +136,13 @@ it lists them too: tap one to make new sessions use it (or go back to
   <img src="docs/screenshots/account.png" width="260" alt="Account and usage screen">
 </p>
 
-**Automations** lists Orca's scheduled agent runs, with **Run now** and
+**Automations** (its own tab) lists Orca's scheduled agent runs, with **Run now** and
 on/off, for desktops that allow it. Current Orca builds keep automations from
 mobile clients; the screen then says so.
 
 ### Recent conversations
 
-**Recent conversations** (last page of the workspace list)
-lists your latest agent conversations across all projects, with their size in
+**Conversations** (the **Chats** tab) lists your latest agent conversations across all projects, with their size in
 tokens. Open one to see its latest messages, read them as a book, or
 **Continue on desktop**, which runs `claude --resume` in that project's
 workspace and opens it on the Kindle.

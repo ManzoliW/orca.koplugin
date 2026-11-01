@@ -90,7 +90,7 @@ end
 
 function Conversations:screen(sessions)
     local rows = {}
-    local now = self.app.now()
+    local now = os.time()
     for _i, s in ipairs(sessions) do
         local parts = { project(s) }
         local ago = util.ago(s.updatedAt, now)

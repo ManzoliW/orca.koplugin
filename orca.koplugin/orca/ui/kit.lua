@@ -234,6 +234,39 @@ function kit.titleBar(opts, width)
 end
 
 --[[
+    Bottom tabs: a black rule, then equal-width labels; the current tab is
+    bold and underlined. tab = { text, callback, selected }
+--]]
+function kit.tabBar(tabs, width)
+    local n = math.max(1, #tabs)
+    local w = math.floor(width / n)
+    local h = style.min_target
+    local mark = style.space.xs
+    local group = HorizontalGroup:new{}
+    for i, tab in ipairs(tabs) do
+        local tab_w = i == n and width - w * (n - 1) or w
+        local label = text(tab.text, "detail", { bold = tab.selected, dim = not tab.selected,
+                                                 max_width = tab_w - style.space.xs })
+        local cell = VerticalGroup:new{
+            CenterContainer:new{ dimen = Geom:new{ w = tab_w, h = h - mark }, label },
+            CenterContainer:new{
+                dimen = Geom:new{ w = tab_w, h = mark },
+                LineWidget:new{
+                    dimen = Geom:new{ w = tab.selected and label:getSize().w or 0, h = mark },
+                    background = style.color.text,
+                },
+            },
+        }
+        table.insert(group, (tab.callback and not tab.selected)
+            and Tappable:new{ callback = tab.callback, cell } or cell)
+    end
+    return VerticalGroup:new{
+        LineWidget:new{ dimen = Geom:new{ w = width, h = style.border }, background = style.color.text },
+        group,
+    }
+end
+
+--[[
     A row of equal-width buttons. button = { text, callback, primary, enabled }
     Primary buttons are drawn filled (white on black): one per row at most.
 --]]

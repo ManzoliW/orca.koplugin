@@ -9,10 +9,12 @@
         refresh = function() end,       -- shows ↻ in the title bar
         add = function() end,           -- shows + in the title bar
         sections = { { title = "Needs you", rows = { row, ... } }, ... },
+                                        -- or { title, card = card }: see ui/cards
         rows = { row, ... },            -- shorthand for one untitled section
         empty = "Nothing here yet.",    -- shown when there are no rows
         loading = "Loading…",           -- shown instead of rows while set
         on_close = function() end,      -- this screen left the stack
+        tabs = { {text, callback, selected}, ... },  -- tab bar at the bottom
     }
     row = see kit.row.
 
@@ -36,6 +38,7 @@ local Screen = Device.screen
 local _ = require("gettext")
 local T = require("ffi/util").template
 
+local cards = require("orca.ui.cards")
 local kit = require("orca.ui.kit")
 local style = require("orca.ui.style")
 
@@ -87,7 +90,13 @@ function Window:paginate(spec, width, body_h)
     local count = 0
     for _, section in ipairs(sections) do
         local rows = section.rows or {}
-        if #rows > 0 then
+        if section.card then
+            if section.title then
+                table.insert(items, { widget = kit.section(section.title, width), header = true })
+            end
+            table.insert(items, { widget = cards.build(section.card, width) })
+            count = count + 1
+        elseif #rows > 0 then
             if section.title then
                 table.insert(items, { widget = kit.section(section.title, width), header = true })
             end
@@ -131,8 +140,11 @@ function Window:render()
             return actions
         end)(),
     }, width)
-    local footer_h = style.min_target
-    local body_h = height - title:getSize().h - footer_h
+    local tabs = spec.tabs and kit.tabBar(spec.tabs, width)
+    local tabs_h = tabs and tabs:getSize().h or 0
+    -- The page footer only takes room when there is more than one page.
+    local footer_h = 0
+    local body_h = height - title:getSize().h - tabs_h
 
     local body = VerticalGroup:new{ align = "left" }
     local pages, count = {}, 0
@@ -140,6 +152,11 @@ function Window:render()
         table.insert(body, kit.note(spec.loading, width))
     else
         pages, count = self:paginate(spec, width, body_h)
+        if #pages > 1 then
+            footer_h = style.min_target
+            body_h = body_h - footer_h
+            pages, count = self:paginate(spec, width, body_h)
+        end
         if count == 0 then
             table.insert(body, kit.note(spec.empty or _("Nothing here."), width))
         end
@@ -177,6 +194,7 @@ function Window:render()
         title,
         body,
         CenterContainer:new{ dimen = Geom:new{ w = width, h = footer_h }, footer },
+        tabs,
     }
     UIManager:setDirty(self, function() return "ui", self.dimen end)
 end
