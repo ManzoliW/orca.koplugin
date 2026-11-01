@@ -7,7 +7,7 @@
     app.nav and use app.dialog / app.text. Tests swap those for fakes.
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local util = require("orca.core.util")

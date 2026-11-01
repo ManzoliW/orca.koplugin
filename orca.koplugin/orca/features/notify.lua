@@ -12,7 +12,7 @@
     newest wins). Inside Orca's screens a toast replaces the popup.
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local ansi = require("orca.render.ansi")

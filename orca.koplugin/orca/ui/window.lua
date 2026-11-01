@@ -35,7 +35,7 @@ local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local Screen = Device.screen
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local cards = require("orca.ui.cards")

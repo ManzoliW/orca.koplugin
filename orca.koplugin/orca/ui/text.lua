@@ -15,7 +15,7 @@ local InputDialog = require("ui/widget/inputdialog")
 local TextViewer = require("ui/widget/textviewer")
 local UIManager = require("ui/uimanager")
 local lfs = require("libs/libkoreader-lfs")
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 
 local text = {}
 

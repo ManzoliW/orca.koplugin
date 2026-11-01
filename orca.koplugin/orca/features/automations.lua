@@ -4,7 +4,7 @@
     on or off, and lists its recent runs (a started run opens its workspace).
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local api = require("orca.api.automations")

@@ -5,7 +5,7 @@
     them, merge.
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local api = require("orca.api.git")

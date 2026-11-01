@@ -15,7 +15,7 @@
 --]]
 
 local UIManager = require("ui/uimanager")
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local common = require("orca.api.common")
@@ -85,7 +85,7 @@ local function countdown(resets_at_ms)
     if s <= 0 then return _("now") end
     if s < 3600 then return T(_("%1 min"), math.ceil(s / 60)) end
     if s < 86400 then return string.format("%dh %02dm", math.floor(s / 3600), math.floor(s % 3600 / 60)) end
-    return os.date("%a %H:%M", math.floor(at))
+    return _.date("%a %H:%M", math.floor(at))
 end
 
 -- Workspace name from a worktree id ("<uuid>::<path>"), falling back to the tab title.
@@ -197,7 +197,7 @@ function Sleep:posterSpec(r)
     if calendar then table.insert(sections, calendar) end
     return {
         title = _("Orca"),
-        subtitle = T(_("As of %1"), os.date("%a %d %b · %H:%M")),
+        subtitle = T(_("As of %1"), _.date("%a %d %b · %H:%M")),
         sections = sections,
     }
 end

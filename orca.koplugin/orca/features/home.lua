@@ -22,7 +22,7 @@
     sessions for picking.
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local ansi = require("orca.render.ansi")
@@ -275,7 +275,7 @@ function Home:readingCard(days)
         table.insert(parts, streak == 1 and _("1-day streak") or T(_("%1-day streak"), streak))
         table.insert(parts, T(_("%1 today"), Home.duration(days[heat.day(now)])))
     else
-        table.insert(parts, T(_("last read %1"), os.date("%a %d %b", heat.last(days))))
+        table.insert(parts, T(_("last read %1"), _.date("%a %d %b", heat.last(days))))
     end
     if total > 0 then table.insert(parts, T(_("%1 this month"), Home.duration(total))) end
     return { type = "heatmap", values = days, now = now, caption = table.concat(parts, " · ") }
@@ -345,7 +345,7 @@ function Home:dashboard(data, extras, updating)
     elseif #groups.needs > 0 then
         subtitle = needsText(#groups.needs)
     else
-        subtitle = os.date("%a %d %b · %H:%M")
+        subtitle = _.date("%a %d %b · %H:%M")
     end
     return {
         title = _("Orca"),

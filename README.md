@@ -306,7 +306,7 @@ the design rules for the e-ink UI are described in
 | Path | What |
 | --- | --- |
 | `orca.koplugin/` | KOReader plugin; `main.lua` only wires it together |
-| `orca.koplugin/orca/` | `core/` (settings, jobs, connection), `api/` (Orca RPC wrappers), `ui/` (e-ink UI kit), `features/` (one file per screen or behavior), `render/` (terminal text, diffs) |
+| `orca.koplugin/orca/` | `core/` (settings, jobs, connection), `api/` (Orca RPC wrappers), `ui/` (e-ink UI kit), `features/` (one file per screen or behavior), `render/` (terminal text, diffs), `l10n/` (translations) |
 | `orca.koplugin/orcaclient/` | Orca mobile protocol: WebSocket, NaCl handshake, RPC and streams |
 | `tailscale.koplugin/` | Tailscale plugin, patched for kernels without TUN; autostart; port forwards |
 | `koreader-patches/` | KOReader user patches: keep the Kindle's status bar from drawing over KOReader (firmware 5.16+) |
@@ -318,7 +318,10 @@ the design rules for the e-ink UI are described in
 ## Tested on
 
 Kindle Basic (KT4, 10th gen), firmware 5.18.1.1.1, KOReader 2026.07.1, Orca
-desktop on Windows 11. Other Kindles that run KOReader should work. The
+desktop on Windows 11. The plugin follows KOReader's language: it ships in
+English and Brazilian Portuguese (`orca.koplugin/orca/l10n/pt_BR.lua`; a new
+language is one more file there, and `luajit tests/run.lua` lists any string
+it misses). Other Kindles that run KOReader should work. The
 touch-injection tool (`kindlectl`) may need its profile adjusted on other
 models (see `tools/README.md`).
 

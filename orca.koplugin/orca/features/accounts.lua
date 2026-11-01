@@ -3,7 +3,7 @@
     account new sessions use (with a switch), and Orca's own totals.
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local api = require("orca.api.accounts")

@@ -7,6 +7,8 @@
     0 = nothing, 1–4 = light to dark.
 --]]
 
+local i18n = require("orca.core.i18n")
+
 local heat = {}
 
 heat.LEVELS = 4
@@ -95,7 +97,7 @@ function heat.months(columns)
     for w, days in ipairs(columns) do
         local month = days[1].day:sub(1, 7)
         if previous and month ~= previous then
-            table.insert(found, { column = w, label = os.date("%b", timeOf(month .. "-01")) })
+            table.insert(found, { column = w, label = i18n.date("%b", timeOf(month .. "-01")) })
         end
         previous = month
     end

@@ -7,7 +7,7 @@
     screen, so its scrollback holds nothing but the current frame.
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local shell = require("orca.core.shell")

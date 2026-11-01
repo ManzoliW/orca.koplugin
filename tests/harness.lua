@@ -27,7 +27,7 @@ local function template(fmt, ...)
 end
 
 local stubs = {
-    ["gettext"] = function(s) return s end,
+    ["gettext"] = setmetatable({ current_lang = "C" }, { __call = function(_, s) return s end }),
     ["ffi/util"] = { template = template },
     ["logger"] = { dbg = function() end, info = function() end, warn = function() end,
                    err = function(...) print("logger.err", ...) end },

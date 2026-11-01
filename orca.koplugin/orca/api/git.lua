@@ -3,7 +3,7 @@
     and timeouts are the ones verified against the desktop.
 --]]
 
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 
 local Diff = require("orca.render.diff")
 local common = require("orca.api.common")

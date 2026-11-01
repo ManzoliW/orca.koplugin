@@ -17,7 +17,7 @@
 --]]
 
 local UIManager = require("ui/uimanager")
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 local T = require("ffi/util").template
 
 local ansi = require("orca.render.ansi")

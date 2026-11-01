@@ -100,7 +100,7 @@ style.glyph = {
 }
 
 -- Status = glyph + word, never one without the other.
-local _ = require("gettext")
+local _ = require("orca.core.i18n")
 style.status = {
     needs = { glyph = "●", label = _("Needs you"), bold = true },
     working = { glyph = "◐", label = _("Working") },
