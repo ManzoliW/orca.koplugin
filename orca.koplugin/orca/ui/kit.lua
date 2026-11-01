@@ -181,14 +181,15 @@ function kit.note(t, width)
 end
 
 -- A borderless glyph button for title bars. enabled = false draws it grayed out.
-function kit.iconButton(glyph, callback, size, enabled)
+-- height defaults to size (square).
+function kit.iconButton(glyph, callback, size, enabled, height)
     return Button:new{
         text = glyph,
         callback = callback,
         enabled = enabled ~= false,
         bordersize = 0,
         width = size or style.min_target,
-        height = size or style.min_target,
+        height = height or size or style.min_target,
         text_font_face = "smallinfofont",
         text_font_size = style.size.title + 4,
         text_font_bold = false,

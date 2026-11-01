@@ -56,6 +56,7 @@ local FEATURES = {
     automations = "orca.features.automations",
     sleep = "orca.features.sleepscreen",
     passage = "orca.features.passage",
+    github = "orca.features.github",
 }
 
 local Orca = WidgetContainer:extend{
@@ -110,6 +111,7 @@ function Orca.buildApp(opts)
         log = log,
         plugin = opts.plugin,
         library = require("orca.core.library"),
+        web = require("orca.core.web"),
     }
     for name, module in pairs(FEATURES) do
         app[name] = require(module).new(app)

@@ -5,9 +5,11 @@
       - workspaces with an agent at work (Needs you → Working → Done)
       - Claude's 5-hour and weekly limits as bars
       - today's numbers (conversations, agents, pull requests, agent time)
-      - the book you're reading, time read per day as a heatmap, and what
-        Orca saved to documents/Claude (these come from the Kindle, so they
-        show even when the PC can't be reached)
+      - your open pull requests with their checks (features/github.lua)
+      - the book you're reading, time read per day as a heatmap, your GitHub
+        contributions the same way, and what Orca saved to documents/Claude
+        (these come from the Kindle, so they show even when the PC can't be
+        reached)
       - tabs: Home, Workspaces, Chats, Usage, Automations
 
     The last dashboard is drawn straight away while the new one loads.
@@ -187,8 +189,13 @@ function Home:tilesCard(extras)
     if type(s) == "table" then
         table.insert(items, { value = tostring(math.floor(util.num(s.totalAgentsSpawned))),
                               label = _("agents"), callback = open_usage })
-        table.insert(items, { value = tostring(math.floor(util.num(s.totalPRsCreated))),
-                              label = _("pull requests"), callback = open_usage })
+        local merged = self.app.github and self.app.github.merged
+        if merged then
+            table.insert(items, { value = tostring(merged), label = _("PRs this week") })
+        else
+            table.insert(items, { value = tostring(math.floor(util.num(s.totalPRsCreated))),
+                                  label = _("pull requests"), callback = open_usage })
+        end
         table.insert(items, { value = string.format("%.0f h", util.num(s.totalAgentTimeMs) / 3600000),
                               label = _("agent time"), callback = open_usage })
     end
@@ -276,7 +283,7 @@ end
 
 function Home:kindleSections(kindle)
     local sections = {}
-    if not kindle then return sections end
+    kindle = kindle or { books = {}, days = {}, shelf = {} }
     local current = kindle.books[1]
     if current then
         table.insert(sections, { title = _("Continue reading"), card = self:bookCard(current, kindle.days) })
@@ -303,6 +310,9 @@ function Home:kindleSections(kindle)
             })
         end
     end
+    -- GitHub's calendar sits with the reading one: it is kept on the Kindle too.
+    local github = self.app.github and self.app.github:sections() or {}
+    if github.calendar then table.insert(sections, github.calendar) end
     table.insert(sections, { title = _("From Claude"), rows = rows })
     return sections
 end
@@ -320,16 +330,14 @@ function Home:dashboard(data, extras, updating)
     for _i, key in ipairs({ "needs", "working", "done" }) do
         table.insert(sections, { title = style.status[key].label, rows = groups[key] })
     end
+    local github = self.app.github and self.app.github:sections() or {}
+    if github.prs then table.insert(sections, github.prs) end
     local gauges = self:gaugesCard(extras.usage)
     if gauges then table.insert(sections, { title = _("Claude usage"), card = gauges }) end
-    local kindle = self:kindleSections(self.kindle)
-    -- The book first, then Orca's numbers, then the rest of the reading.
-    if kindle[1] and kindle[1].card and kindle[1].card.type == "book" then
-        table.insert(sections, table.remove(kindle, 1))
-    end
     local tiles = self:tilesCard(extras)
     if tiles then table.insert(sections, { title = _("Activity"), card = tiles }) end
-    for _i, section in ipairs(kindle) do table.insert(sections, section) end
+    -- The book, then the reading and GitHub heatmaps together.
+    for _i, section in ipairs(self:kindleSections(self.kindle)) do table.insert(sections, section) end
 
     local subtitle
     if updating then
@@ -431,6 +439,11 @@ function Home:load(force)
             self.data = data
             page:set(self:dashboard(data, self.extras))
             self:loadExtras(page, force)
+            if self.app.github then
+                self.app.github:refresh(force, function()
+                    if self.data and page:isShown() then page:set(self:dashboard(self.data, self.extras)) end
+                end)
+            end
         end,
         on_error = function(err)
             -- The Kindle's side of Home works without the PC.

@@ -76,6 +76,14 @@ function Menu.items(app, plugin)
                     end
                     return items
                 end)(),
+            },
+            {
+                text_func = function()
+                    return T("%1: %2", _("GitHub user"), app.github:login() or _("from your pull requests"))
+                end,
+                help_text = _("Home shows this user's public contribution calendar from github.com, fetched by the Kindle twice a day."),
+                keep_menu_open = true,
+                callback = function() app.github:askLogin() end,
                 separator = true,
             },
             {

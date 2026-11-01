@@ -23,14 +23,20 @@ first:
   question and its choices as buttons (**1 Yes**, **2 …**, **Esc**), so you
   can answer from Home, or **Open session**.
 - **Workspaces with an agent at work**, as ● Needs you, ◐ Working and ○ Done.
+- **Your pull requests**: the open ones you authored, across all of Orca's
+  projects, with their checks (✓ pass, ✕ fail, … running). Tap one for its
+  checks, **Merge…**, **Re-run the failed checks** or **Ask Claude to fix…**.
 - **Claude usage**: the 5-hour and weekly limits as bars, with when they reset.
 - **Activity**: conversations touched today, agents started, pull requests
-  and agent time. Tap a number for the screen behind it.
+  you merged in the last 7 days, and agent time. Tap a number for the screen
+  behind it.
 - **Continue reading**: the book you opened last, with its cover, progress
   and time read today. Tap it to go back to the book.
 - **Reading**: the time you read each day, from KOReader's reading
   statistics, as a heatmap over the last months, with your streak (or the
   day you last read) and this month's total.
+- **GitHub**: your contribution calendar from github.com, drawn the same way
+  right below, so coding and reading sit side by side.
 - **From Claude**: the newest files in `documents/Claude/` (diffs, files and
   conversations you opened as books), marked **New** until you open them.
 - **Tabs** at the bottom: Home, Workspaces, Chats, Usage and Automations.
@@ -41,10 +47,16 @@ listing conversations makes the desktop scan transcripts on disk; ↻ fetches
 everything again. The reading part comes from the Kindle itself, so it is
 there even when your PC can't be reached.
 
+Pull requests come through Orca, using your desktop's GitHub login, and are
+reused for 15 minutes. The contribution calendar is GitHub's public page
+(no token): the Kindle fetches it itself, in the background, at most twice a
+day, and keeps it for offline use. Your GitHub user is taken from the author
+of your pull requests; set it by hand in Tools → Orca → **GitHub user**.
+
 <p>
   <img src="docs/screenshots/home.png" width="260" alt="Home dashboard">
   &nbsp;
-  <img src="docs/screenshots/reading.png" width="260" alt="Reading heatmap and files from Claude">
+  <img src="docs/screenshots/reading.png" width="260" alt="Reading and GitHub heatmaps">
 </p>
 
 ### Browse workspaces and sessions

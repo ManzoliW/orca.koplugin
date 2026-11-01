@@ -66,6 +66,12 @@ function util.ellipsize(s, n)
     return s
 end
 
+-- 1234567 -> "1,234,567"
+function util.thousands(n)
+    local s = tostring(math.floor(tonumber(n) or 0))
+    return (s:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^(%-?),", "%1"))
+end
+
 -- 324000000 -> "324M", 1100000 -> "1.1M", 495000 -> "495k"
 function util.shortCount(n)
     n = tonumber(n) or 0
