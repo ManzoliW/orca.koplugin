@@ -58,7 +58,7 @@ function Menu.items(app, plugin)
             },
             {
                 text = _("Claude status on the sleep screen"),
-                help_text = _("While the Kindle is awake, keeps the sleep-screen message updated with Claude's usage limits, your latest conversation and which sessions need you. Turning it off restores your previous message."),
+                help_text = _("While the Kindle is awake, redraws a sleep-screen picture every few minutes: Claude's usage limits, which sessions are at work, the book you're reading and your reading heatmap. Turning it off restores your previous sleep screen."),
                 checked_func = function() return settings:get("sleep_status") end,
                 callback = function() app.sleep:setEnabled(not settings:get("sleep_status")) end,
             },

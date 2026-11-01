@@ -112,6 +112,8 @@ function Orca.buildApp(opts)
         plugin = opts.plugin,
         library = require("orca.core.library"),
         web = require("orca.core.web"),
+        poster = require("orca.ui.poster").write,
+        sleep_dir = DataStorage:getDataDir() .. "/cache/orca-sleep",
     }
     for name, module in pairs(FEATURES) do
         app[name] = require(module).new(app)

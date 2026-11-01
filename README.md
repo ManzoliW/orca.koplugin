@@ -134,17 +134,21 @@ Opening a workspace shows its sessions, then:
 
 ### Claude status on the sleep screen
 
-With **Claude status on the sleep screen** on, the plugin keeps KOReader's
-sleep message up to date while the Kindle is awake, so the sleeping Kindle
-shows Claude's usage and your sessions:
+With **Claude status on the sleep screen** on, the sleeping Kindle shows a
+picture drawn from Home's cards: Claude's 5-hour and weekly limits, the
+sessions with an agent at work, the book you're reading, and your reading
+(and, when there's room, GitHub) heatmap, with the time it was drawn.
 
 <p>
   <img src="docs/screenshots/sleep.png" width="260" alt="Claude status on the sleep screen">
 </p>
 
-The limits are Claude's own 5-hour and weekly limits, as Orca's accounts
-screen shows them, followed by the most recent conversation and its total
-tokens. Turning the option off restores your previous sleep message.
+A Kindle draws its sleep screen before plugins hear about the suspend, so
+the plugin redraws the picture every 5 minutes while the Kindle is awake and
+points KOReader's sleep screen at it (a random image from a folder that
+holds only this picture). KOReader's sleep message is kept up to date as
+well and takes over if the picture can't be drawn. Turning the option off
+restores your previous sleep screen settings.
 
 ### Account and usage
 

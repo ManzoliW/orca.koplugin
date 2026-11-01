@@ -65,6 +65,7 @@ local function store(initial)
         isTrue = function(_, k) return data[k] == true end,
         nilOrTrue = function(_, k) return data[k] == nil or data[k] == true end,
         makeTrue = function(_, k) data[k] = true end,
+        makeFalse = function(_, k) data[k] = false end,
         flush = function() end,
     }
 end
@@ -208,6 +209,8 @@ function H.app(opts)
         docs_dir = "/tmp/docs",
         library = opts.library,
         web = opts.web,
+        poster = opts.poster,
+        sleep_dir = opts.sleep_dir,
     }
     for _, name in ipairs(opts.features or {
         "home", "workspace", "session", "create", "git", "files", "conversations",

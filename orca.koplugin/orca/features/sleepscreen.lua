@@ -1,12 +1,17 @@
 --[[
     Claude status on the sleep screen. On a Kindle the screensaver is drawn
     before plugins hear about the suspend, so there's no time to fetch then:
-    instead we keep KOReader's screensaver message up to date in the
-    background (Claude's session/weekly limits from Orca's accounts.list, the
-    latest conversation, and which sessions need you), and KOReader draws it
-    when the Kindle sleeps.
+    instead we keep it up to date in the background (Claude's session/weekly
+    limits from Orca's accounts.list, the latest conversation, and which
+    sessions need you), and KOReader draws it when the Kindle sleeps.
 
-    Turning it off restores the message settings the user had before.
+    It is drawn as a picture: Home's cards (usage, sessions, the book you're
+    reading, the reading and GitHub heatmaps) in a PNG the size of the
+    screen, in a folder of its own that KOReader's "random image" sleep
+    screen picks from. KOReader's sleep message is kept up to date too, and
+    is what shows if the picture can't be drawn.
+
+    Turning it off restores the sleep screen settings the user had before.
 --]]
 
 local UIManager = require("ui/uimanager")
@@ -14,6 +19,8 @@ local _ = require("gettext")
 local T = require("ffi/util").template
 
 local common = require("orca.api.common")
+local lfs = require("libs/libkoreader-lfs")
+local style = require("orca.ui.style")
 local util = require("orca.core.util")
 
 local Sleep = {}
@@ -23,6 +30,24 @@ local FIRST = 5            -- s after start before the first update
 local REFRESH = 300        -- s between updates while awake
 local USAGE_REFRESH = 900  -- s between asking the desktop to re-fetch usage
 local NAME_CHARS = 17      -- about 31 characters fit on a line of the message box
+local IMAGE = "orca.png"
+local SESSION_ROWS = 2     -- sessions on the picture; more would push the book off it
+
+-- The user's sleep screen settings that turning this on changes.
+local function current()
+    local gs = G_reader_settings
+    return {
+        show = gs:isTrue("screensaver_show_message"),
+        message = gs:readSetting("screensaver_message"),
+        type = gs:readSetting("screensaver_type"),
+        dir = gs:readSetting("screensaver_dir"),
+        image = true,
+    }
+end
+
+local function put(key, value)
+    if value == nil then G_reader_settings:delSetting(key) else G_reader_settings:saveSetting(key, value) end
+end
 
 function Sleep.new(app)
     return setmetatable({ app = app }, Sleep)
@@ -36,15 +61,17 @@ function Sleep:setEnabled(on)
     local gs = G_reader_settings
     local settings = self.app.settings
     if on and not settings:has("saved_screensaver") then
-        settings:set("saved_screensaver", {
-            show = gs:isTrue("screensaver_show_message"),
-            message = gs:readSetting("screensaver_message"),
-        })
+        settings:set("saved_screensaver", current())
     elseif not on then
         local saved = settings:get("saved_screensaver")
         if type(saved) == "table" then
             gs:saveSetting("screensaver_show_message", saved.show and true or false)
             gs:saveSetting("screensaver_message", saved.message)
+            -- Saved before pictures existed: type and folder were never changed.
+            if saved.image then
+                put("screensaver_type", saved.type)
+                put("screensaver_dir", saved.dir)
+            end
             settings:set("saved_screensaver", nil)
         end
     end
@@ -118,6 +145,91 @@ function Sleep:message(usage, states, latest)
     return table.concat(lines, "\n")
 end
 
+function Sleep:imagePath()
+    local dir = self.app.sleep_dir
+    return dir and (dir .. "/" .. IMAGE) or nil
+end
+
+-- The workspaces with an agent at work, most urgent first: { row, ... }
+function Sleep:sessionRows(states)
+    local rows, seen = {}, {}
+    for _i, key in ipairs({ "needs", "working", "done" }) do
+        local names = {}
+        for _j, status in pairs(states or {}) do
+            if type(status) == "table" and common.state(status.state).key == key then
+                local name = workspaceName(status)
+                if not seen[name] then
+                    seen[name] = true
+                    table.insert(names, name)
+                end
+            end
+        end
+        table.sort(names)
+        local st = style.status[key]
+        for _j, name in ipairs(names) do
+            table.insert(rows, { glyph = st.glyph, title = name, detail = st.label, bold = st.bold })
+        end
+    end
+    while #rows > SESSION_ROWS do table.remove(rows) end
+    return rows
+end
+
+-- What the picture shows, as a screen spec (see ui/poster.lua). Sections
+-- that don't fit are left out, so the order is the priority.
+function Sleep:posterSpec(r)
+    local app, home = self.app, self.app.home
+    local sections = {}
+    local gauges = home and home:gaugesCard(r.usage)
+    if gauges then
+        gauges.callback = nil
+        table.insert(sections, { title = _("Claude usage"), card = gauges })
+    end
+    table.insert(sections, { title = _("Sessions"), rows = self:sessionRows(r.states) })
+    local kindle = home and home:loadKindle()
+    if kindle then
+        if kindle.books[1] then
+            table.insert(sections, { title = _("Continue reading"), card = home:bookCard(kindle.books[1], kindle.days) })
+        end
+        local reading = home:readingCard(kindle.days)
+        if reading then table.insert(sections, { title = _("Reading"), card = reading }) end
+    end
+    local calendar = app.github and app.github:sections().calendar
+    if calendar then table.insert(sections, calendar) end
+    return {
+        title = _("Orca"),
+        subtitle = T(_("As of %1"), os.date("%a %d %b · %H:%M")),
+        sections = sections,
+    }
+end
+
+-- Draws the picture and points the sleep screen at it; false if it couldn't.
+function Sleep:drawImage(r)
+    local path = self:imagePath()
+    if not path or not self.app.poster then return false end
+    pcall(lfs.mkdir, self.app.sleep_dir)
+    local ok, err = self.app.poster(self:posterSpec(r), path)
+    if not ok then
+        self.app.log("sleep picture:", err)
+        return false
+    end
+    local gs = G_reader_settings
+    gs:saveSetting("screensaver_type", "random_image")
+    gs:saveSetting("screensaver_dir", self.app.sleep_dir)
+    gs:makeFalse("screensaver_show_message")
+    return true
+end
+
+-- Back to the text message, on the user's own sleep screen.
+function Sleep:useMessage()
+    local gs = G_reader_settings
+    local saved = self.app.settings:get("saved_screensaver")
+    if type(saved) == "table" and saved.image and gs:readSetting("screensaver_dir") == self.app.sleep_dir then
+        put("screensaver_type", saved.type)
+        put("screensaver_dir", saved.dir)
+    end
+    gs:makeTrue("screensaver_show_message")
+end
+
 function Sleep:refresh()
     local app = self.app
     if not self:enabled() or app.jobs:isBusy() or not app.isOnline() then return end
@@ -140,8 +252,8 @@ function Sleep:refresh()
             if not r then return end
             if refresh_usage then self.usage_fetched_at = os.time() end
             self.latest = r.latest
-            G_reader_settings:makeTrue("screensaver_show_message")
             G_reader_settings:saveSetting("screensaver_message", self:message(r.usage, r.states, r.latest))
+            if not self:drawImage(r) then self:useMessage() end
         end,
     }
 end
@@ -149,6 +261,13 @@ end
 function Sleep:start()
     self:stop()
     if not self:enabled() then return end
+    -- Turned on before pictures existed: remember the type and folder too.
+    local saved = self.app.settings:get("saved_screensaver")
+    if type(saved) == "table" and not saved.image then
+        local now = current()
+        now.show, now.message = saved.show, saved.message
+        self.app.settings:set("saved_screensaver", now)
+    end
     self.refresher = function()
         UIManager:scheduleIn(REFRESH, self.refresher)
         self:refresh()

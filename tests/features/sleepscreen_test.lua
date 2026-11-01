@@ -95,3 +95,82 @@ H.test("start schedules only when enabled and paired", function()
     unpaired.sleep:start()
     H.eq(unpaired.sleep.refresher, nil)
 end)
+
+local function setupImage(draw, settings)
+    G_reader_settings = H.store{ screensaver_message = "Sleeping", screensaver_type = "cover",
+                                 screensaver_show_message = true }
+    local drawn = {}
+    local app, t = H.app({ settings = settings, quiet = true, sleep_dir = "/tmp/orca-sleep",
+        poster = function(spec, path)
+            table.insert(drawn, { spec = spec, path = path })
+            if draw == false then return nil, "no framebuffer" end
+            return true
+        end,
+        results = { ["accounts.list"] = USAGE, ["session.tabs.listAll"] = STATES, ["aiVault.listSessions"] = VAULT } })
+    return app, t, drawn
+end
+
+local function sectionTitles(spec)
+    local titles = {}
+    for _, s in ipairs(spec.sections) do table.insert(titles, s.title) end
+    return table.concat(titles, ", ")
+end
+
+H.test("the sleep screen becomes a picture of usage and sessions, and turning off restores the user's", function()
+    local app, t, drawn = setupImage()
+    app.sleep:setEnabled(true)
+    app.sleep:refresh(); t.settle()
+    H.eq(drawn[1].path, "/tmp/orca-sleep/orca.png")
+    local spec = drawn[1].spec
+    H.has(spec.subtitle, "As of ")
+    H.has(sectionTitles(spec), "Claude usage, Sessions")
+    H.eq(spec.sections[1].card.items[1].percent, 61.6)
+    H.eq(spec.sections[1].card.callback, nil)
+    local rows = spec.sections[2].rows
+    H.eq(rows[1].title, "kindle"); H.eq(rows[1].detail, "Needs you")
+    H.eq(rows[2].title, "novo")
+    H.eq(G_reader_settings:readSetting("screensaver_type"), "random_image")
+    H.eq(G_reader_settings:readSetting("screensaver_dir"), "/tmp/orca-sleep")
+    H.eq(G_reader_settings:isTrue("screensaver_show_message"), false)
+    H.has(G_reader_settings:readSetting("screensaver_message"), "5h: 62% used")
+
+    app.sleep:setEnabled(false)
+    H.eq(G_reader_settings:readSetting("screensaver_type"), "cover")
+    H.eq(G_reader_settings:readSetting("screensaver_dir"), nil)
+    H.eq(G_reader_settings:readSetting("screensaver_message"), "Sleeping")
+    H.eq(G_reader_settings:isTrue("screensaver_show_message"), true)
+end)
+
+H.test("when the picture can't be drawn the message shows on the user's own sleep screen", function()
+    local app, t = setupImage(false)
+    app.sleep:setEnabled(true)
+    G_reader_settings:saveSetting("screensaver_type", "random_image")
+    G_reader_settings:saveSetting("screensaver_dir", "/tmp/orca-sleep")
+    app.sleep:refresh(); t.settle()
+    H.eq(G_reader_settings:readSetting("screensaver_type"), "cover")
+    H.eq(G_reader_settings:isTrue("screensaver_show_message"), true)
+end)
+
+H.test("turned on before pictures existed: the type is remembered on start", function()
+    local app = setupImage(true, { pairing_url = "x", sleep_status = true,
+        saved_screensaver = { show = true, message = "Old" } })
+    app.sleep:start()
+    app.sleep:stop()
+    local saved = app.settings:get("saved_screensaver")
+    H.eq(saved.image, true); H.eq(saved.type, "cover"); H.eq(saved.message, "Old"); H.eq(saved.show, true)
+end)
+
+H.test("the picture adds the book and the heatmaps when there is room for them", function()
+    local app, t, drawn = setupImage()
+    app.library = {
+        recent = function() return { { file = "/b.epub", title = "B", percent = 10 } } end,
+        readingDays = function() return { [os.date("%Y-%m-%d")] = 600 } end,
+        files = function() return {} end,
+        cover = function() return nil end,
+    }
+    app.settings:set("github_user", "me")
+    app.settings:set("github_calendar", { user = "me", at = os.time(), total = 5, days = { [os.date("%Y-%m-%d")] = 5 } })
+    app.sleep:setEnabled(true)
+    app.sleep:refresh(); t.settle()
+    H.eq(sectionTitles(drawn[1].spec), "Claude usage, Sessions, Continue reading, Reading, GitHub · me")
+end)
