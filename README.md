@@ -253,7 +253,7 @@ the design rules for the e-ink UI are described in
 | `koreader-patches/` | KOReader user patches: keep the Kindle's status bar from drawing over KOReader (firmware 5.16+) |
 | `native/tweetnacl/` | NaCl cross-build for armv7 (`build.sh`, needs Zig) |
 | `tools/` | PC side: `kindlectl.py` (screenshot/tap/deploy over SSH; set `KINDLE_HOST`), `send_to_kindle.py`, `pull_notes.py` |
-| `tests/` | `luajit tests/run.lua` runs every screen on a PC against a fake Orca and stubbed KOReader (also in CI); the other scripts run on the Kindle, and `rpc_probe.lua` calls the real desktop |
+| `tests/` | `luajit tests/run.lua` runs every screen on a PC against a fake Orca and stubbed KOReader (also in CI); `tests/device/` scripts run on the Kindle, and `rpc_probe.lua` there calls the real desktop |
 | `.claude/skills/` | `send-to-kindle` skill for Claude Code |
 
 ## Tested on

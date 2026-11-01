@@ -71,4 +71,5 @@ From Apple's HIG, adapted to grayscale e-ink (see `orca/ui/style.lua`):
 `tests/harness.lua` builds the real app (features, jobs, settings) with a fake
 Orca (`H.results[method]`) and fake nav/dialog/text, then drives screens:
 `t.tap("Git")`, `t.press("Merge")`, `t.answer("message")`, `t.lastCall("git.commit")`.
-`tests/rpc_probe.lua` runs on the Kindle against the real desktop.
+`tests/device/` holds scripts that run on the Kindle with KOReader's LuaJIT;
+`tests/device/rpc_probe.lua` calls every RPC the screens use against the real desktop.

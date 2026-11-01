@@ -2,7 +2,7 @@
     Projects, workspaces, terminals and files: repo.list, worktree.*,
     terminal.create / session.tabs.createTerminal, github.listWorkItems,
     files.*, stats.summary. Params and timeouts are the ones verified
-    against the desktop (tests/rpc_probe.lua).
+    against the desktop (tests/device/rpc_probe.lua).
 --]]
 
 local common = require("orca.api.common")
