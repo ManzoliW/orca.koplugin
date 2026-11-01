@@ -5,6 +5,9 @@
       - workspaces with an agent at work (Needs you → Working → Done)
       - Claude's 5-hour and weekly limits as bars
       - today's numbers (conversations, agents, pull requests, agent time)
+      - the book you're reading, time read per day as a heatmap, and what
+        Orca saved to documents/Claude (these come from the Kindle, so they
+        show even when the PC can't be reached)
       - tabs: Home, Workspaces, Chats, Usage, Automations
 
     The last dashboard is drawn straight away while the new one loads.
@@ -22,6 +25,7 @@ local T = require("ffi/util").template
 
 local ansi = require("orca.render.ansi")
 local common = require("orca.api.common")
+local heat = require("orca.render.heat")
 local style = require("orca.ui.style")
 local util = require("orca.core.util")
 
@@ -33,6 +37,8 @@ local CHATS_FRESH = 900         -- s to reuse the conversation list
 local CHATS_LIMIT = 30
 local CHATS_TIMEOUT = 60
 local KEY_ESC = "\27"
+local READING_DAYS = 400        -- days of reading statistics to read (more than the heatmap shows)
+local SHELF_SIZE = 3
 
 function Home.new(app)
     return setmetatable({ app = app, extras = {} }, Home)
@@ -200,9 +206,111 @@ function Home:tabs()
     }
 end
 
+-- Kindle side ---------------------------------------------------------------------------
+
+-- 540 -> "9 min", 7500 -> "2 h 05"
+function Home.duration(seconds)
+    local m = math.floor((tonumber(seconds) or 0) / 60 + 0.5)
+    if m < 60 then return T(_("%1 min"), m) end
+    return string.format("%d h %02d", math.floor(m / 60), m % 60)
+end
+
+-- Reads the history, statistics and shelf (local and quick, but not free:
+-- done when Home opens or is refreshed, not on every redraw).
+function Home:loadKindle()
+    local library = self.app.library
+    if not library then return nil end
+    return {
+        books = library.recent(1),
+        days = library.readingDays(os.time() - READING_DAYS * 86400),
+        shelf = library.files(self.app.docs_dir, SHELF_SIZE + 1),
+    }
+end
+
+function Home:openBook(file)
+    self.app.nav:close()
+    self.app.library.open(file)
+end
+
+function Home:bookCard(book, days)
+    local parts = {}
+    if book.status == "complete" then
+        table.insert(parts, _("Finished"))
+    elseif book.percent then
+        table.insert(parts, T(_("%1% read"), book.percent))
+    end
+    local today = days[heat.day(os.time())]
+    if today and today > 0 then table.insert(parts, T(_("%1 today"), Home.duration(today))) end
+    local library = self.app.library
+    return {
+        type = "book",
+        title = book.title,
+        authors = book.authors,
+        percent = book.percent,
+        detail = table.concat(parts, " · "),
+        cover = function(w, h) return library.cover(book.file, w, h) end,
+        callback = function() self:openBook(book.file) end,
+    }
+end
+
+function Home:readingCard(days)
+    local now = os.time()
+    local month, total = os.date("%Y-%m", now), 0
+    local any = false
+    for day, seconds in pairs(days) do
+        if seconds > 0 then any = true end
+        if day:sub(1, 7) == month then total = total + seconds end
+    end
+    if not any then return nil end
+    local streak = heat.streak(days, now)
+    local parts = {}
+    if streak > 0 then
+        table.insert(parts, streak == 1 and _("1-day streak") or T(_("%1-day streak"), streak))
+        table.insert(parts, T(_("%1 today"), Home.duration(days[heat.day(now)])))
+    else
+        table.insert(parts, T(_("last read %1"), os.date("%a %d %b", heat.last(days))))
+    end
+    if total > 0 then table.insert(parts, T(_("%1 this month"), Home.duration(total))) end
+    return { type = "heatmap", values = days, now = now, caption = table.concat(parts, " · ") }
+end
+
+function Home:kindleSections(kindle)
+    local sections = {}
+    if not kindle then return sections end
+    local current = kindle.books[1]
+    if current then
+        table.insert(sections, { title = _("Continue reading"), card = self:bookCard(current, kindle.days) })
+    end
+    local reading = self:readingCard(kindle.days)
+    if reading then table.insert(sections, { title = _("Reading"), card = reading }) end
+    local rows = {}
+    for _i, book in ipairs(kindle.shelf) do
+        if #rows == SHELF_SIZE then break end
+        if not current or book.file ~= current.file then
+            local parts = {}
+            if book.status == "complete" then
+                table.insert(parts, _("Finished"))
+            else
+                table.insert(parts, book.percent and T(_("%1% read"), book.percent) or _("New"))
+            end
+            local ago = util.ago(book.time, os.time())
+            if ago ~= "" then table.insert(parts, ago) end
+            table.insert(rows, {
+                title = book.title,
+                subtitle = table.concat(parts, " · "),
+                bold = not book.percent,
+                callback = function() self:openBook(book.file) end,
+            })
+        end
+    end
+    table.insert(sections, { title = _("From Claude"), rows = rows })
+    return sections
+end
+
 --[[
     data = { worktrees, waiting = { term, wt, worktree, excerpt } | nil }
     extras = { usage, stats, chats } (any may be missing)
+    The Kindle's own data is self.kindle (see loadKindle).
 --]]
 function Home:dashboard(data, extras, updating)
     extras = extras or {}
@@ -214,13 +322,14 @@ function Home:dashboard(data, extras, updating)
     end
     local gauges = self:gaugesCard(extras.usage)
     if gauges then table.insert(sections, { title = _("Claude usage"), card = gauges }) end
+    local kindle = self:kindleSections(self.kindle)
+    -- The book first, then Orca's numbers, then the rest of the reading.
+    if kindle[1] and kindle[1].card and kindle[1].card.type == "book" then
+        table.insert(sections, table.remove(kindle, 1))
+    end
     local tiles = self:tilesCard(extras)
     if tiles then table.insert(sections, { title = _("Activity"), card = tiles }) end
-    local active = #groups.needs + #groups.working + #groups.done
-    table.insert(sections, { title = active == 0 and _("All quiet") or _("Workspaces"), rows = {
-        { title = _("All workspaces"), detail = tostring(#data.worktrees), chevron = true,
-          callback = function() self:openList() end },
-    } })
+    for _i, section in ipairs(kindle) do table.insert(sections, section) end
 
     local subtitle
     if updating then
@@ -301,6 +410,7 @@ end
 
 -- Loads the dashboard into the home screen (pushing it when the window is closed).
 function Home:load(force)
+    if force or not self.kindle then self.kindle = self:loadKindle() end
     local page = self.page
     if not page or not page:isShown() then
         if self.data then
@@ -323,8 +433,19 @@ function Home:load(force)
             self:loadExtras(page, force)
         end,
         on_error = function(err)
+            -- The Kindle's side of Home works without the PC.
+            local sections = self:kindleSections(self.kindle)
+            if #sections > 0 then
+                table.insert(sections, 1, { card = {
+                    type = "hero",
+                    title = _("Can't reach your PC"),
+                    text = self.app:explain(err),
+                    buttons = { { { text = _("Try again"), callback = function() self:load(true) end } } },
+                } })
+            end
             page:set{
                 title = _("Orca"),
+                sections = sections,
                 empty = self.app:explain(err),
                 refresh = function() self:load(true) end,
                 tabs = self:tabs(),

@@ -26,15 +26,25 @@ first:
 - **Claude usage**: the 5-hour and weekly limits as bars, with when they reset.
 - **Activity**: conversations touched today, agents started, pull requests
   and agent time. Tap a number for the screen behind it.
+- **Continue reading**: the book you opened last, with its cover, progress
+  and time read today. Tap it to go back to the book.
+- **Reading**: the time you read each day, from KOReader's reading
+  statistics, as a heatmap over the last months, with your streak (or the
+  day you last read) and this month's total.
+- **From Claude**: the newest files in `documents/Claude/` (diffs, files and
+  conversations you opened as books), marked **New** until you open them.
 - **Tabs** at the bottom: Home, Workspaces, Chats, Usage and Automations.
 
 The last dashboard shows straight away while the new one loads ("Updating…").
 Usage and totals are reused for 5 minutes and conversations for 15, since
 listing conversations makes the desktop scan transcripts on disk; ↻ fetches
-everything again.
+everything again. The reading part comes from the Kindle itself, so it is
+there even when your PC can't be reached.
 
 <p>
   <img src="docs/screenshots/home.png" width="260" alt="Home dashboard">
+  &nbsp;
+  <img src="docs/screenshots/reading.png" width="260" alt="Reading heatmap and files from Claude">
 </p>
 
 ### Browse workspaces and sessions

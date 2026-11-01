@@ -9,16 +9,22 @@
         One line per limit: label, a bar, the percentage and a dim detail.
     card = { type = "tiles", items = { {value, label, callback}, ... } }
         Big numbers side by side.
+    card = { type = "book", title, authors, percent, detail, cover = function(w, h), callback }
+        A book with its cover and progress.
+    card = { type = "heatmap", values = { ["YYYY-MM-DD"] = n }, caption, now, callback }
+        Days as squares, darker for more.
 
     E-ink: black, white and two light grays only, so bars and tiles stay
     crisp under "ui" refreshes; the hero is the only filled area.
 --]]
 
+local Blitbuffer = require("ffi/blitbuffer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
+local ImageWidget = require("ui/widget/imagewidget")
 local LeftContainer = require("ui/widget/container/leftcontainer")
 local LineWidget = require("ui/widget/linewidget")
 local RightContainer = require("ui/widget/container/rightcontainer")
@@ -27,6 +33,7 @@ local TextWidget = require("ui/widget/textwidget")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 
+local heat = require("orca.render.heat")
 local kit = require("orca.ui.kit")
 local style = require("orca.ui.style")
 
@@ -162,6 +169,130 @@ function cards.tiles(card, width)
         table.insert(group, tappable(tile, item.callback))
     end
     return group
+end
+
+--[[
+    A book: its cover (or a framed initial) beside the title, author, a
+    progress bar and a detail line. card.cover(w, h) returns a BlitBuffer
+    that fits w × h, or nil.
+--]]
+function cards.book(card, width)
+    local pad = style.space.l
+    local cover_w, cover_h = style.row_height + style.space.l, style.row_height * 2
+    local col_w = width - 2 * pad - cover_w - style.space.l
+    local image = card.cover and card.cover(cover_w, cover_h)
+    local cover
+    if image then
+        cover = CenterContainer:new{
+            dimen = Geom:new{ w = cover_w, h = cover_h },
+            ImageWidget:new{ image = image, image_disposable = false },
+        }
+    else
+        local initial = (card.title or "?"):match("[%z\1-\127\194-\244][\128-\191]*") or "?"
+        cover = FrameContainer:new{
+            bordersize = style.border,
+            padding = 0,
+            radius = style.space.xs,
+            CenterContainer:new{
+                dimen = Geom:new{ w = cover_w - 2 * style.border, h = cover_h - 2 * style.border },
+                kit.text(initial:upper(), "stat", { bold = true }),
+            },
+        }
+    end
+    local column = VerticalGroup:new{
+        align = "left",
+        TextBoxWidget:new{
+            text = card.title or "",
+            face = style.face("row", true),
+            bold = true,
+            width = col_w,
+            height = math.floor(cover_h * 0.45),
+            height_overflow_show_ellipsis = true,
+        },
+    }
+    if card.authors and card.authors ~= "" then
+        table.insert(column, kit.text(card.authors, "detail", { dim = true, max_width = col_w }))
+    end
+    table.insert(column, VerticalSpan:new{ width = style.space.m })
+    if card.percent then
+        table.insert(column, cards.bar(card.percent, col_w, style.space.s))
+        table.insert(column, VerticalSpan:new{ width = style.space.s })
+    end
+    if card.detail and card.detail ~= "" then
+        table.insert(column, kit.text(card.detail, "detail", { max_width = col_w }))
+    end
+    local line = HorizontalGroup:new{
+        align = "top",
+        HorizontalSpan:new{ width = pad },
+        cover,
+        HorizontalSpan:new{ width = style.space.l },
+        LeftContainer:new{ dimen = Geom:new{ w = col_w, h = cover_h }, column },
+    }
+    return tappable(VerticalGroup:new{
+        VerticalSpan:new{ width = style.space.s },
+        line,
+        VerticalSpan:new{ width = style.space.s },
+    }, card.callback)
+end
+
+-- Heatmap shades (darkness) for levels 0–4; 0 still shows the grid.
+local SHADES = { [0] = 0.08, 0.3, 0.55, 0.8, 1 }
+
+--[[
+    A GitHub-style heatmap: as many weeks as fit the width, today in the
+    last column. card = { values = { ["YYYY-MM-DD"] = n }, caption, now }
+--]]
+function cards.heatmap(card, width)
+    local pad = style.space.l
+    local inner = width - 2 * pad
+    local gap = math.max(2, math.floor(style.space.xs * 0.75))
+    local target = style.space.l - gap
+    local weeks = math.max(1, math.floor((inner + gap) / (target + gap)))
+    local cell = math.floor((inner - gap * (weeks - 1)) / weeks)
+    local columns = heat.grid(card.values or {}, weeks, card.now)
+    local grid = HorizontalGroup:new{ align = "top", HorizontalSpan:new{ width = pad } }
+    for w, days in ipairs(columns) do
+        if w > 1 then table.insert(grid, HorizontalSpan:new{ width = gap }) end
+        local column = VerticalGroup:new{}
+        for d, day in ipairs(days) do
+            if d > 1 then table.insert(column, VerticalSpan:new{ width = gap }) end
+            if day.future then
+                table.insert(column, VerticalSpan:new{ width = cell })
+            else
+                table.insert(column, LineWidget:new{
+                    dimen = Geom:new{ w = cell, h = cell },
+                    background = Blitbuffer.gray(SHADES[day.level]),
+                })
+            end
+        end
+        table.insert(grid, column)
+    end
+    local group = VerticalGroup:new{ align = "left" }
+    if card.caption and card.caption ~= "" then
+        table.insert(group, HorizontalGroup:new{
+            HorizontalSpan:new{ width = pad },
+            kit.text(card.caption, "detail", { max_width = inner }),
+        })
+        table.insert(group, VerticalSpan:new{ width = style.space.s })
+    end
+    table.insert(group, grid)
+    -- Month names under the columns where months begin, skipping any that
+    -- would run into the previous one.
+    local labels = HorizontalGroup:new{}
+    local cursor = 0
+    for _, m in ipairs(heat.months(columns)) do
+        local x = pad + (m.column - 1) * (cell + gap)
+        local label = kit.text(m.label, "detail", { dim = true })
+        if x >= cursor + style.space.s and x + label:getSize().w <= width then
+            table.insert(labels, HorizontalSpan:new{ width = x - cursor })
+            table.insert(labels, label)
+            cursor = x + label:getSize().w
+        end
+    end
+    table.insert(group, VerticalSpan:new{ width = style.space.xs })
+    table.insert(group, labels)
+    table.insert(group, VerticalSpan:new{ width = style.space.s })
+    return tappable(group, card.callback)
 end
 
 function cards.build(card, width)

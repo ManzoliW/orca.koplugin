@@ -44,8 +44,8 @@ H.test("home groups active workspaces and links to the rest", function()
     H.eq(section(top, "Needs you").rows[1].glyph, "●")
     H.has(section(top, "Needs you").rows[1].subtitle, "main · 2 sessions")
     H.eq(section(top, "Working").rows[1].title, "faxa")
-    H.eq(t.row("All workspaces").detail, "2")
-    t.tap("All workspaces")
+    top.tabs[2].callback()
+    t.settle()
     H.eq(t.top().title, "Workspaces")
     H.eq(t.top().sections[1].rows[1].title, "kindle")
 end)
@@ -103,6 +103,69 @@ H.test("home without usage or totals still shows workspaces", function()
     for _, s in ipairs(t.top().sections) do
         H.eq(s.title == "Claude usage" or s.title == "Activity", false, "section " .. tostring(s.title))
     end
+end)
+
+local function fakeLibrary(opened)
+    local today = os.date("%Y-%m-%d")
+    local yesterday = os.date("%Y-%m-%d", os.time() - 86400)
+    return {
+        recent = function() return { { file = "/b/spidercat.azw3", title = "Spider Cat", authors = "A. Writer",
+                                       percent = 64 } } end,
+        readingDays = function() return { [today] = 22 * 60, [yesterday] = 3600 } end,
+        files = function() return {
+            { file = "/b/spidercat.azw3", title = "Spider Cat", percent = 64, time = os.time() },
+            { file = "/docs/plan.epub", title = "Plan", time = os.time() - 7200 },
+            { file = "/docs/diff.epub", title = "Diff", percent = 100, status = "complete", time = os.time() - 3 * 86400 },
+        } end,
+        cover = function() return nil end,
+        open = function(file) table.insert(opened, file) end,
+    }
+end
+
+H.test("home shows the book being read, reading days and Claude's shelf", function()
+    local opened = {}
+    local app, t = H.app({ library = fakeLibrary(opened) })
+    app.home:open()
+    t.settle()
+    local top = t.top()
+    local book = section(top, "Continue reading").card
+    H.eq(book.type, "book")
+    H.eq(book.title, "Spider Cat")
+    H.eq(book.percent, 64)
+    H.eq(book.detail, "64% read · 22 min today")
+    local reading = section(top, "Reading").card
+    H.eq(reading.type, "heatmap")
+    H.has(reading.caption, "2-day streak · 22 min today")
+    local shelf = section(top, "From Claude").rows
+    H.eq(#shelf, 2)                         -- the book being read isn't repeated
+    H.eq(shelf[1].title, "Plan"); H.has(shelf[1].subtitle, "New")
+    H.has(shelf[2].subtitle, "Finished")
+    book.callback()
+    H.eq(opened[1], "/b/spidercat.azw3")
+    H.eq(#t.stack, 0)
+end)
+
+H.test("home still shows the Kindle's side when the PC can't be reached", function()
+    local app, t = H.app({ library = fakeLibrary({}),
+        results = { ["worktree.ps"] = function() return nil, "proxy: connection refused" end } })
+    app.home:open()
+    t.settle()
+    local top = t.top()
+    H.eq(top.sections[1].card.title, "Can't reach your PC")
+    H.eq(section(top, "Continue reading").card.title, "Spider Cat")
+end)
+
+H.test("reading caption says when you last read once the streak is over", function()
+    local app = H.app()
+    local card = app.home:readingCard({ [os.date("%Y-%m-%d", os.time() - 5 * 86400)] = 600 })
+    H.has(card.caption, "last read " .. os.date("%a %d %b", os.time() - 5 * 86400))
+end)
+
+H.test("Home.duration", function()
+    local Home = require("orca.features.home")
+    H.eq(Home.duration(540), "9 min")
+    H.eq(Home.duration(7500), "2 h 05")
+    H.eq(Home.duration(nil), "0 min")
 end)
 
 H.test("workspace lists sessions with state words and places to go", function()

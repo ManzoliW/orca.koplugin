@@ -109,6 +109,7 @@ function Orca.buildApp(opts)
         now = function() return time.to_s(time.now()) end,
         log = log,
         plugin = opts.plugin,
+        library = require("orca.core.library"),
     }
     for name, module in pairs(FEATURES) do
         app[name] = require(module).new(app)

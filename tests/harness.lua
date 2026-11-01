@@ -206,6 +206,7 @@ function H.app(opts)
         now = function() return os.time() end,
         log = function() end,
         docs_dir = "/tmp/docs",
+        library = opts.library,
     }
     for _, name in ipairs(opts.features or {
         "home", "workspace", "session", "create", "git", "files", "conversations",
