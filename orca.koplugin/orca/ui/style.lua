@@ -29,8 +29,26 @@ function style.face(role, bold)
     return Font:getFace(bold and "smallinfofontbold" or "smallinfofont", size)
 end
 
+-- The terminal font is DejaVu Sans Mono, bundled: the Kindle's monospace
+-- font (Droid Sans Mono) has no box drawing or the symbols agents draw their
+-- screens with, so KOReader takes those from proportional fallback fonts and
+-- the columns stop lining up. Font:getFace only opens files below its fonts
+-- folder, so the path climbs out of it to the plugin.
+local MONO_FILE = (function()
+    local root = debug.getinfo(1, "S").source:match("^@(.*)/orca/ui/[^/]*$")
+    if not root then return nil end
+    if root:sub(1, 1) ~= "/" then
+        local ok, lfs = pcall(require, "libs/libkoreader-lfs")
+        local cwd = ok and lfs.currentdir()
+        if not cwd then return nil end
+        root = cwd .. "/" .. root:gsub("^%./", "")
+    end
+    return string.rep("../", 16) .. root:sub(2) .. "/fonts/DejaVuSansMono.ttf"
+end)()
+
 function style.mono(size)
-    return Font:getFace("smallinfont", size or 16)
+    size = size or 16
+    return MONO_FILE and Font:getFace(MONO_FILE, size) or Font:getFace("smallinfont", size)
 end
 
 style.color = {

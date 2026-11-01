@@ -43,3 +43,10 @@ H.test("choices finds numbered options once each, in order", function()
     H.eq(#ansi.choices("no options here\n10 items"), 0)
     H.eq(#ansi.choices(nil), 0)
 end)
+
+H.test("symbols the terminal font lacks become ones it has, one column each", function()
+    local ansi = require("orca.render.ansi")
+    H.eq(ansi.formatLines({ "⏺ Done", "  ⎿  Read 3 files", "⏵⏵ auto mode" }),
+         "● Done\n  └  Read 3 files\n▶▶ auto mode")
+    H.eq(ansi.formatLines({ "─│╭╮" }), "─│╭╮", "box drawing stays")
+end)

@@ -33,7 +33,9 @@ terminal to the Kindle's width while you're looking at it, so nothing is cut
 off, and restores the size when you leave. Buttons cover what Claude Code asks
 for most: `1 2 3` for choices, `Esc`, `Ctrl-C`, arrows, `Tab`/`S-Tab`
 (mode switching), `Enter`, and **Type…** for free text. With live updates on, the
-screen refreshes when the session prints something.
+screen refreshes when the session prints something. The terminal uses a
+bundled DejaVu Sans Mono, since the Kindle's own monospace font has no box
+drawing, so agents' boxes and rules line up.
 
 ### Start something new
 
@@ -201,6 +203,13 @@ Tailscale on both the Kindle and the PC, and Orca running on the PC.
    Orca → Pairing → **Import**. The file is deleted after import.
 5. **Test it**: Tools → Orca → Connection → **Test connection**. It reports
    either the number of workspaces found or the step that failed.
+6. **Kindle firmware 5.16 or later**: copy the two files in
+   [`koreader-patches/`](koreader-patches) (also `koreader-patches.zip` in
+   each release) to `koreader/patches/`. Newer firmware draws its status bar
+   (clock, Wi-Fi, battery) with a process KOReader doesn't know about, and it
+   repaints over KOReader's top corners every minute, covering the back
+   button. The patches pause it while KOReader runs and resume it on exit,
+   even after a crash.
 
 > The pairing link is a device credential. Keep it out of chats, screenshots
 > and repositories. Revoke it in Orca → Settings → Mobile if it leaks.
@@ -241,6 +250,7 @@ the design rules for the e-ink UI are described in
 | `orca.koplugin/orca/` | `core/` (settings, jobs, connection), `api/` (Orca RPC wrappers), `ui/` (e-ink UI kit), `features/` (one file per screen or behavior), `render/` (terminal text, diffs) |
 | `orca.koplugin/orcaclient/` | Orca mobile protocol: WebSocket, NaCl handshake, RPC and streams |
 | `tailscale.koplugin/` | Tailscale plugin, patched for kernels without TUN; autostart; port forwards |
+| `koreader-patches/` | KOReader user patches: keep the Kindle's status bar from drawing over KOReader (firmware 5.16+) |
 | `native/tweetnacl/` | NaCl cross-build for armv7 (`build.sh`, needs Zig) |
 | `tools/` | PC side: `kindlectl.py` (screenshot/tap/deploy over SSH; set `KINDLE_HOST`), `send_to_kindle.py`, `pull_notes.py` |
 | `tests/` | `luajit tests/run.lua` runs every screen on a PC against a fake Orca and stubbed KOReader (also in CI); the other scripts run on the Kindle, and `rpc_probe.lua` calls the real desktop |

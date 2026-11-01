@@ -23,10 +23,11 @@ jobs:
         run: |
           zip -r orca.koplugin.zip orca.koplugin
           zip -r tailscale.koplugin.zip tailscale.koplugin -x 'tailscale.koplugin/bin/*'
-          sha256sum orca.koplugin.zip tailscale.koplugin.zip > SHA256SUMS
+          (cd koreader-patches && zip ../koreader-patches.zip *.lua)
+          sha256sum orca.koplugin.zip tailscale.koplugin.zip koreader-patches.zip > SHA256SUMS
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" orca.koplugin.zip tailscale.koplugin.zip SHA256SUMS \
+          gh release create "$GITHUB_REF_NAME" orca.koplugin.zip tailscale.koplugin.zip koreader-patches.zip SHA256SUMS \
             --title "$GITHUB_REF_NAME" --generate-notes

@@ -338,11 +338,15 @@ def cmd_restart(dev, prof, args):
         print("stopped KOReader (pids %s)" % " ".join(pids))
     else:
         print("KOReader was not running")
-    # Launch detached. koreader.sh is the same entry point KUAL/KPM use; it
-    # stops the Kindle UI itself. Untested from SSH on this device: if the
-    # Kindle UI stays on top, launch KOReader from the Kindle instead.
-    launch = ("cd %s && nohup sh -c 'command -v setsid >/dev/null && exec setsid ./koreader.sh || exec ./koreader.sh' "
-              ">/dev/null 2>&1 </dev/null &" % LUAJIT_DIR)
+    # Launch detached the way the home-screen tile does (KPM's launcher), so
+    # the Kindle UI is put away exactly as on a normal start. Started as a
+    # bare koreader.sh from SSH, the Kindle's status bar keeps drawing its
+    # clock and Wi-Fi icon over KOReader's top corners.
+    kpm = "/var/local/kmc/bin/kpm"
+    if dev.text("[ -x %s ] && echo yes" % kpm).strip() == "yes":
+        launch = "nohup setsid %s launch koreader --asap >/dev/null 2>&1 </dev/null &" % kpm
+    else:
+        launch = ("cd %s && nohup setsid ./koreader.sh >/dev/null 2>&1 </dev/null &" % LUAJIT_DIR)
     dev.run(launch, check=False, timeout=20)
     time.sleep(3)
     running = dev.text("pgrep -f 'reader.lua' 2>/dev/null || ps | grep '[r]eader.lua' | awk '{print $1}'").split()

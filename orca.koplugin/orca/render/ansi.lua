@@ -16,12 +16,25 @@ function ansi.strip(s)
                        :gsub("\r", ""))
 end
 
--- Joins screen lines, trimming trailing blanks and collapsing runs of empty lines.
+-- Symbols agents use that the terminal font (DejaVu Sans Mono) lacks, as the
+-- closest ones it has: a fallback font would draw them at another width.
+ansi.SUBSTITUTES = {
+    ["⎿"] = "└", ["⏵"] = "▶", ["⏺"] = "●", ["⎯"] = "─", ["※"] = "*",
+}
+
+function ansi.monoSafe(s)
+    for from, to in pairs(ansi.SUBSTITUTES) do s = s:gsub(from, to) end
+    return s
+end
+
+-- Joins screen lines, trimming trailing blanks and collapsing runs of empty
+-- lines.
 function ansi.formatLines(lines, strip)
     local out, blank = {}, 0
     for _, line in ipairs(lines or {}) do
         line = util.str(line)
         if strip then line = ansi.strip(line) end
+        line = ansi.monoSafe(line)
         line = line:gsub("%s+$", "")
         if line == "" then
             blank = blank + 1
