@@ -141,4 +141,17 @@ function library.open(file)
     ReaderUI:showReader(file)
 end
 
+-- Shows a folder in KOReader's file browser, closing the book if one is open.
+function library.browse(dir)
+    local FileManager = require("apps/filemanager/filemanager")
+    local ReaderUI = require("apps/reader/readerui")
+    if FileManager.instance then
+        FileManager.instance.file_chooser:changeToPath(dir)
+    elseif ReaderUI.instance then
+        ReaderUI.instance:showFileManager(dir .. "/")
+    else
+        FileManager:showFiles(dir)
+    end
+end
+
 return library

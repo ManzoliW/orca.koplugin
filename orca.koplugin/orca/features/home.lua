@@ -41,6 +41,7 @@ local CHATS_TIMEOUT = 60
 local KEY_ESC = "\27"
 local READING_DAYS = 400        -- days of reading statistics to read (more than the heatmap shows)
 local SHELF_SIZE = 3
+local SHELF_SCAN = 20      -- recent files from Claude looked at to count the new ones
 
 function Home.new(app)
     return setmetatable({ app = app, extras = {} }, Home)
@@ -233,13 +234,18 @@ function Home:loadKindle()
     return {
         books = library.recent(1),
         days = library.readingDays(os.time() - READING_DAYS * 86400),
-        shelf = library.files(self.app.docs_dir, SHELF_SIZE + 1),
+        shelf = library.files(self.app.docs_dir, SHELF_SCAN),
     }
 end
 
 function Home:openBook(file)
     self.app.nav:close()
     self.app.library.open(file)
+end
+
+function Home:browseFiles()
+    self.app.nav:close()
+    self.app.library.browse(self.app.docs_dir)
 end
 
 function Home:bookCard(book, days)
@@ -293,10 +299,12 @@ function Home:kindleSections(kindle)
     end
     local reading = self:readingCard(kindle.days)
     if reading then table.insert(sections, { title = _("Reading"), card = reading }) end
-    local rows = {}
+    local rows, new, more = {}, 0, false
     for _i, book in ipairs(kindle.shelf) do
-        if #rows == SHELF_SIZE then break end
-        if not current or book.file ~= current.file then
+        if not book.percent and book.status ~= "complete" then new = new + 1 end
+        if #rows == SHELF_SIZE then
+            more = true
+        elseif not current or book.file ~= current.file then
             local parts = {}
             if book.status == "complete" then
                 table.insert(parts, _("Finished"))
@@ -316,7 +324,12 @@ function Home:kindleSections(kindle)
     -- GitHub's calendar sits with the reading one: it is kept on the Kindle too.
     local github = self.app.github and self.app.github:sections() or {}
     if github.calendar then table.insert(sections, github.calendar) end
-    table.insert(sections, { title = _("From Claude"), rows = rows })
+    if more then
+        table.insert(rows, { title = _("All files from Claude…"), callback = function() self:browseFiles() end })
+    end
+    local title = new == 1 and _("From Claude · 1 new")
+        or new > 1 and T(_("From Claude · %1 new"), new) or _("From Claude")
+    table.insert(sections, { title = title, rows = rows })
     return sections
 end
 

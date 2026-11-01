@@ -44,7 +44,9 @@ first:
   first week the agent numbers count from the day you installed this. On
   Mondays the sleep picture shows this card too.
 - **From Claude**: the newest files in `documents/Claude/` (diffs, files and
-  conversations you opened as books), marked **New** until you open them.
+  conversations you opened as books), marked **New** until you open them,
+  then with how far you've read. The heading counts the new ones, and
+  **All files from Claude…** opens the folder in KOReader's file browser.
 - **Tabs** at the bottom: Home, Workspaces, Chats, Usage and Automations.
 
 The last dashboard shows straight away while the new one loads ("Updating…").

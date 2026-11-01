@@ -136,12 +136,35 @@ H.test("home shows the book being read, reading days and Claude's shelf", functi
     local reading = section(top, "Reading").card
     H.eq(reading.type, "heatmap")
     H.has(reading.caption, "2-day streak · 22 min today")
-    local shelf = section(top, "From Claude").rows
+    local shelf = section(top, "From Claude · 1 new").rows
     H.eq(#shelf, 2)                         -- the book being read isn't repeated
     H.eq(shelf[1].title, "Plan"); H.has(shelf[1].subtitle, "New")
     H.has(shelf[2].subtitle, "Finished")
     book.callback()
     H.eq(opened[1], "/b/spidercat.azw3")
+    H.eq(#t.stack, 0)
+end)
+
+H.test("Claude's shelf counts the unopened files and opens the folder for the rest", function()
+    local browsed
+    local library = fakeLibrary({})
+    library.files = function()
+        local files = {}
+        for i = 1, 6 do
+            table.insert(files, { file = "/docs/f" .. i .. ".epub", title = "F" .. i, time = os.time() - i * 60,
+                                  percent = i > 4 and 50 or nil })
+        end
+        return files
+    end
+    library.browse = function(dir) browsed = dir end
+    local app, t = H.app({ library = library })
+    app.home:open()
+    t.settle()
+    local shelf = section(t.top(), "From Claude · 4 new").rows
+    H.eq(#shelf, 4)
+    H.eq(shelf[4].title, "All files from Claude…")
+    shelf[4].callback()
+    H.eq(browsed, "/tmp/docs")
     H.eq(#t.stack, 0)
 end)
 
