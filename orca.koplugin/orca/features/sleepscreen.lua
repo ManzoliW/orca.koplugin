@@ -5,11 +5,15 @@
     limits from Orca's accounts.list, the latest conversation, and which
     sessions need you), and KOReader draws it when the Kindle sleeps.
 
-    It is drawn as a picture: Home's cards (usage, sessions, the book you're
-    reading, the reading and GitHub heatmaps) in a PNG the size of the
-    screen, in a folder of its own that KOReader's "random image" sleep
+    It is drawn as a picture: Home's cards (the question a session is
+    waiting on, usage, sessions, the book you're reading, the reading and
+    GitHub heatmaps) in a PNG the size of the screen, in a folder of its own that KOReader's "random image" sleep
     screen picks from. KOReader's sleep message is kept up to date too, and
     is what shows if the picture can't be drawn.
+
+    Waking the Kindle while the picture shows a question opens Home on it,
+    so the answer is a tap away (unless Orca, or a popup with a question, is
+    already up; a "finished" popup waits underneath).
 
     Turning it off restores the sleep screen settings the user had before.
 --]]
@@ -32,6 +36,7 @@ local USAGE_REFRESH = 900  -- s between asking the desktop to re-fetch usage
 local NAME_CHARS = 17      -- about 31 characters fit on a line of the message box
 local IMAGE = "orca.png"
 local SESSION_ROWS = 2     -- sessions on the picture; more would push the book off it
+local WAKE_DELAY = 1       -- s after waking before opening the question, so the screen settles
 
 -- The user's sleep screen settings that turning this on changes.
 local function current()
@@ -179,6 +184,7 @@ end
 function Sleep:posterSpec(r)
     local app, home = self.app, self.app.home
     local sections = {}
+    if home and r.waiting then table.insert(sections, { card = home:heroCard(r.waiting, true) }) end
     local gauges = home and home:gaugesCard(r.usage)
     if gauges then
         gauges.callback = nil
@@ -246,16 +252,29 @@ function Sleep:refresh()
                     latest = newest
                 end
             end
-            return { usage = usage, states = c:agentStates() or {}, latest = latest }
+            local states = c:agentStates() or {}
+            local waiting = app.home and app.home.findWaiting(c, {}, states)
+            return { usage = usage, states = states, latest = latest, waiting = waiting }
         end,
         done = function(r)
             if not r then return end
             if refresh_usage then self.usage_fetched_at = os.time() end
             self.latest = r.latest
+            self.waiting = r.waiting
             G_reader_settings:saveSetting("screensaver_message", self:message(r.usage, r.states, r.latest))
             if not self:drawImage(r) then self:useMessage() end
         end,
     }
+end
+
+-- On wake: when the picture showed a question, open Home on it.
+function Sleep:wake()
+    local app = self.app
+    if not self.waiting or not self:enabled() or not app.settings:get("wake_to_question") then return end
+    UIManager:scheduleIn(WAKE_DELAY, function()
+        if app.nav:isOpen() or app.session.current or app.notify:showing() == "needs" then return end
+        app.home:open()
+    end)
 end
 
 function Sleep:start()

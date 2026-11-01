@@ -294,6 +294,11 @@ function Notify:isShowing()
     return false
 end
 
+-- The kind of the popup on screen ("needs", "done"), or nil.
+function Notify:showing()
+    return self:isShowing() and self.card_item and self.card_item.kind or nil
+end
+
 -- Needs-you first, otherwise the oldest.
 function Notify:takeNext()
     for i, item in ipairs(self.queue) do

@@ -120,7 +120,8 @@ function Home:answer(waiting, key, label)
     }
 end
 
-function Home:heroCard(waiting)
+-- still: for the sleep picture, where nothing can be tapped: no "Open session".
+function Home:heroCard(waiting, still)
     local name = util.basename(waiting.wt and waiting.wt.path or waiting.worktree)
     local agent = self.app:agentName(util.str(waiting.term.agentIdentity) ~= "" and waiting.term.agentIdentity or nil)
     local answers = {}
@@ -135,9 +136,11 @@ function Home:heroCard(waiting)
         end
     end
     table.insert(answers, { text = "Esc", mono = true, callback = function() self:answer(waiting, "Esc") end })
+    local title = T(_("%1 needs you in %2"), agent, name)
+    if still then return { type = "hero", title = title, mono = waiting.excerpt, buttons = { answers } } end
     return {
         type = "hero",
-        title = T(_("%1 needs you in %2"), agent, name),
+        title = title,
         mono = waiting.excerpt,
         buttons = {
             answers,
@@ -358,7 +361,8 @@ function Home:dashboard(data, extras, updating)
 end
 
 -- Inside a job: the first session waiting for an answer, with its question.
-local function findWaiting(c, worktrees, states)
+-- Also used by the sleep picture.
+function Home.findWaiting(c, worktrees, states)
     local handles = {}
     for handle, status in pairs(states) do
         if common.state(status.state).key == "needs" then table.insert(handles, handle) end
@@ -433,7 +437,7 @@ function Home:load(force)
             local worktrees, err = c:listWorktrees()
             if not worktrees then return nil, err end
             local states = c:agentStates() or {}
-            return { worktrees = worktrees, waiting = findWaiting(c, worktrees, states) }
+            return { worktrees = worktrees, waiting = Home.findWaiting(c, worktrees, states) }
         end,
         done = function(data)
             self.data = data

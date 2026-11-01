@@ -58,9 +58,16 @@ function Menu.items(app, plugin)
             },
             {
                 text = _("Claude status on the sleep screen"),
-                help_text = _("While the Kindle is awake, redraws a sleep-screen picture every few minutes: Claude's usage limits, which sessions are at work, the book you're reading and your reading heatmap. Turning it off restores your previous sleep screen."),
+                help_text = _("While the Kindle is awake, redraws a sleep-screen picture every few minutes: the question a session is waiting on, Claude's usage limits, which sessions are at work, the book you're reading and your reading heatmap. Turning it off restores your previous sleep screen."),
                 checked_func = function() return settings:get("sleep_status") end,
                 callback = function() app.sleep:setEnabled(not settings:get("sleep_status")) end,
+            },
+            {
+                text = _("Open the question when I wake the Kindle"),
+                help_text = _("When the sleep screen shows a session waiting for you, waking the Kindle opens Orca on that question, with its answer buttons."),
+                enabled_func = function() return settings:get("sleep_status") end,
+                checked_func = function() return settings:get("wake_to_question") end,
+                callback = function() settings:flip("wake_to_question") end,
             },
             {
                 text_func = function() return T("%1: %2", _("Agent for new sessions"), app:agentName()) end,

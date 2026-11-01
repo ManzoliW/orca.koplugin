@@ -169,6 +169,7 @@ end
 function Orca:onResume()
     self.app.connection:reset("woke up")
     self.app.notify:resume()
+    self.app.sleep:wake()
     self.app.sleep:start()
 end
 

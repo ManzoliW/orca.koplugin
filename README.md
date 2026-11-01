@@ -135,9 +135,10 @@ Opening a workspace shows its sessions, then:
 ### Claude status on the sleep screen
 
 With **Claude status on the sleep screen** on, the sleeping Kindle shows a
-picture drawn from Home's cards: Claude's 5-hour and weekly limits, the
-sessions with an agent at work, the book you're reading, and your reading
-(and, when there's room, GitHub) heatmap, with the time it was drawn.
+picture drawn from Home's cards: the question a session is waiting on (with
+its answer choices), Claude's 5-hour and weekly limits, the sessions with an
+agent at work, the book you're reading, and your reading (and, when there's
+room, GitHub) heatmap, with the time it was drawn.
 
 <p>
   <img src="docs/screenshots/sleep.png" width="260" alt="Claude status on the sleep screen">
@@ -149,6 +150,11 @@ points KOReader's sleep screen at it (a random image from a folder that
 holds only this picture). KOReader's sleep message is kept up to date as
 well and takes over if the picture can't be drawn. Turning the option off
 restores your previous sleep screen settings.
+
+When the picture shows a question, waking the Kindle opens Orca on it, so
+answering is one tap (Tools → Orca → **Open the question when I wake the
+Kindle** turns this off). It doesn't open over Orca's own screens or over a
+popup that already asks the question; a "finished" popup waits underneath.
 
 ### Account and usage
 
