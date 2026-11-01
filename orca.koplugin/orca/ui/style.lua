@@ -39,7 +39,7 @@ local MONO_FILE = (function()
     if not root then return nil end
     if root:sub(1, 1) ~= "/" then
         local ok, lfs = pcall(require, "libs/libkoreader-lfs")
-        local cwd = ok and lfs.currentdir()
+        local cwd = ok and type(lfs) == "table" and lfs.currentdir and lfs.currentdir()
         if not cwd then return nil end
         root = cwd .. "/" .. root:gsub("^%./", "")
     end
