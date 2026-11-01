@@ -37,6 +37,11 @@ screen refreshes when the session prints something. The terminal uses a
 bundled DejaVu Sans Mono, since the Kindle's own monospace font has no box
 drawing, so agents' boxes and rules line up.
 
+Swipe down in the text to read what scrolled off: with **Keep earlier
+output** on (Session view settings), the terminal is made three Kindle
+screens tall while you view it. **Rotate** switches between portrait and
+landscape; the terminal is resized to fit either way.
+
 ### Start something new
 
 **+** in the title bar of the workspace list (also **Start something new…** in
@@ -129,6 +134,11 @@ shows the question itself with **1 2 3 Esc** buttons, so you can answer
 without leaving the book; **Open** goes straight to that session. When the
 Kindle wakes up, it catches up on what finished or started waiting while it
 was asleep.
+
+Battery: keeping the stream open costs about 5 mA while the Kindle is awake
+(52 mA with notifications on vs 48 mA off on a Kindle Basic (KT4), Wi-Fi on,
+measured over 8 minutes each), roughly 10% less reading time. Asleep, Wi-Fi
+is off and it costs nothing.
 
 <p>
   <img src="docs/screenshots/notify-answer.png" width="260" alt="Popup with Claude's question and answer buttons">
