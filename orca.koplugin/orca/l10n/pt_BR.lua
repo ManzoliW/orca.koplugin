@@ -379,6 +379,25 @@ return {
     ["last read %1"] = "última leitura %1",
     ["pull requests"] = "pull requests",
 
+    -- features/layout.lua
+    ["Question waiting for you"] = "Pergunta esperando por você",
+    ["on the sleep screen on Mondays"] = "na tela de descanso às segundas",
+    ["Home and sleep screen"] = "Início e tela de descanso",
+    ["Sleep screen"] = "Tela de descanso",
+    ["Hidden"] = "Oculto",
+    ["Home cards"] = "Cartões do Início",
+    ["Home cards…"] = "Cartões do Início…",
+    ["Choose which cards Home and the sleep screen show, and in what order."] = "Escolha quais cartões o Início e a tela de descanso mostram, e em que ordem.",
+    ["Order and where each shows"] = "Ordem e onde cada um aparece",
+    ["Back to the default"] = "Voltar ao padrão",
+    ["Hide on Home"] = "Ocultar no Início",
+    ["Show on Home"] = "Mostrar no Início",
+    ["Hide on the sleep screen"] = "Ocultar na tela de descanso",
+    ["Show on the sleep screen"] = "Mostrar na tela de descanso",
+    ["Move up"] = "Mover para cima",
+    ["Move down"] = "Mover para baixo",
+    ["Only on Home: the sleep screen can't show it."] = "Só no Início: a tela de descanso não consegue mostrá-lo.",
+
     -- features/menu.lua
     ["%1 px"] = "%1 px",
     ["%1 s"] = "%1 s",

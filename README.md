@@ -140,6 +140,15 @@ Opening a workspace shows its sessions, then:
   <img src="docs/screenshots/git.png" width="260" alt="Git screen of a workspace">
 </p>
 
+### Home cards
+
+Tools → Orca → **Home cards…** lists Home's cards in order. Tap one to hide
+it on Home or on the sleep screen, or to move it up or down; the sleep
+picture uses the same order and leaves out what doesn't fit, so this is how
+you choose what it keeps (for example, hide **Continue reading** there to
+make room for the GitHub calendar). Pull requests, Activity and From Claude
+are Home-only. **Back to the default** undoes it all.
+
 ### Claude status on the sleep screen
 
 With **Claude status on the sleep screen** on, the sleeping Kindle shows a

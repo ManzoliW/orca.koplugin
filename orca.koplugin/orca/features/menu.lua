@@ -63,6 +63,11 @@ function Menu.items(app, plugin)
                 callback = function() app.sleep:setEnabled(not settings:get("sleep_status")) end,
             },
             {
+                text = _("Home cards…"),
+                help_text = _("Choose which cards Home and the sleep screen show, and in what order."),
+                callback = function() app.layout:open() end,
+            },
+            {
                 text = _("Open the question when I wake the Kindle"),
                 help_text = _("When the sleep screen shows a session waiting for you, waking the Kindle opens Orca on that question, with its answer buttons."),
                 enabled_func = function() return settings:get("sleep_status") end,

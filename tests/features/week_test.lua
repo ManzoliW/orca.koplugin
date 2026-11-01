@@ -81,11 +81,15 @@ H.test("Home shows the week after the activity numbers, and keeps the day's tota
     H.eq(app.settings:get("stats_days")[os.date("%Y-%m-%d")].agents, 183)
 end)
 
-H.test("the sleep picture puts the week under the question when it has the totals", function()
+H.test("the sleep picture shows the week when it has the totals", function()
     G_reader_settings = H.store{}
     local app = H.app({ quiet = true })
     app.week:record({ totalAgentsSpawned = 1, totalAgentTimeMs = 0 }, os.time() - 7 * DAY)
     local spec = app.sleep:posterSpec({ states = {}, stats = { totalAgentsSpawned = 5, totalAgentTimeMs = 7200000 } })
-    H.eq(spec.sections[1].title, "This week")
-    H.eq(app.sleep:posterSpec({ states = {} }).sections[1].title == "This week", false, "only with the totals (Mondays)")
+    local function has(s)
+        for _, section in ipairs(s.sections) do if section.title == "This week" then return true end end
+        return false
+    end
+    H.eq(has(spec), true)
+    H.eq(has(app.sleep:posterSpec({ states = {} })), false, "only with the totals (Mondays)")
 end)

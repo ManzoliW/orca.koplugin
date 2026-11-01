@@ -123,10 +123,10 @@ H.test("the sleep screen becomes a picture of usage and sessions, and turning of
     H.eq(drawn[1].path, "/tmp/orca-sleep/orca.png")
     local spec = drawn[1].spec
     H.has(spec.subtitle, "As of ")
-    H.has(sectionTitles(spec), "Claude usage, Sessions")
-    H.eq(spec.sections[2].card.items[1].percent, 61.6)
-    H.eq(spec.sections[2].card.callback, nil)
-    local rows = spec.sections[3].rows
+    H.has(sectionTitles(spec), "Sessions, Claude usage")
+    H.eq(spec.sections[3].card.items[1].percent, 61.6)
+    H.eq(spec.sections[3].card.callback, nil)
+    local rows = spec.sections[2].rows
     H.eq(rows[1].title, "kindle"); H.eq(rows[1].detail, "Needs you")
     H.eq(rows[2].title, "novo")
     H.eq(G_reader_settings:readSetting("screensaver_type"), "random_image")
@@ -172,7 +172,7 @@ H.test("the picture adds the book and the heatmaps when there is room for them",
     app.settings:set("github_calendar", { user = "me", at = os.time(), total = 5, days = { [os.date("%Y-%m-%d")] = 5 } })
     app.sleep:setEnabled(true)
     app.sleep:refresh(); t.settle()
-    H.eq(sectionTitles(drawn[1].spec), "Claude usage, Sessions, Continue reading, Reading, GitHub · me")
+    H.eq(sectionTitles(drawn[1].spec), "Sessions, Claude usage, Continue reading, Reading, GitHub · me")
 end)
 
 H.test("the picture leads with the question a session is waiting on", function()

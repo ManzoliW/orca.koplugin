@@ -4,6 +4,7 @@
     instead we keep it up to date in the background (Claude's session/weekly
     limits from Orca's accounts.list, the latest conversation, and which
     sessions need you), and KOReader draws it when the Kindle sleeps.
+    Which cards it shows, and their order, is the user's (features/layout.lua).
 
     It is drawn as a picture: Home's cards (the question a session is
     waiting on, usage, sessions, the book you're reading, the reading and
@@ -183,26 +184,34 @@ end
 -- that don't fit are left out, so the order is the priority.
 function Sleep:posterSpec(r)
     local app, home = self.app, self.app.home
-    local sections = {}
-    if home and r.waiting then table.insert(sections, { card = home:heroCard(r.waiting, true) }) end
-    local week = r.stats and app.week and app.week:section(home and home:loadKindle(), r.stats)
-    if week then table.insert(sections, week) end
-    local gauges = home and home:gaugesCard(r.usage)
-    if gauges then
-        gauges.callback = nil
-        table.insert(sections, { title = _("Claude usage"), card = gauges })
-    end
-    table.insert(sections, { title = _("Sessions"), rows = self:sessionRows(r.states) })
     local kindle = home and home:loadKindle()
-    if kindle then
-        if kindle.books[1] then
-            table.insert(sections, { title = _("Continue reading"), card = home:bookCard(kindle.books[1], kindle.days) })
-        end
-        local reading = home:readingCard(kindle.days)
-        if reading then table.insert(sections, { title = _("Reading"), card = reading }) end
+    local build = {
+        question = function()
+            return r.waiting and { card = home:heroCard(r.waiting, true) }
+        end,
+        sessions = function() return { title = _("Sessions"), rows = self:sessionRows(r.states) } end,
+        usage = function()
+            local gauges = home:gaugesCard(r.usage)
+            if gauges then gauges.callback = nil end
+            return gauges and { title = _("Claude usage"), card = gauges }
+        end,
+        -- Only Mondays fetch the totals.
+        week = function() return r.stats and app.week and app.week:section(kindle, r.stats) end,
+        book = function()
+            return kindle and kindle.books[1]
+                and { title = _("Continue reading"), card = home:bookCard(kindle.books[1], kindle.days) }
+        end,
+        reading = function()
+            local reading = kindle and home:readingCard(kindle.days)
+            return reading and { title = _("Reading"), card = reading }
+        end,
+        github = function() return app.github and app.github:sections().calendar end,
+    }
+    local sections = {}
+    for _i, id in ipairs(home and app.layout:shown("sleep") or {}) do
+        local section = build[id] and build[id]()
+        if section then table.insert(sections, section) end
     end
-    local calendar = app.github and app.github:sections().calendar
-    if calendar then table.insert(sections, calendar) end
     return {
         title = _("Orca"),
         subtitle = T(_("As of %1"), _.date("%a %d %b · %H:%M")),

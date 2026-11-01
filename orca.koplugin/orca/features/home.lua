@@ -290,15 +290,9 @@ function Home:readingCard(days)
     return { type = "heatmap", values = days, now = now, caption = table.concat(parts, " · ") }
 end
 
-function Home:kindleSections(kindle)
-    local sections = {}
-    kindle = kindle or { books = {}, days = {}, shelf = {} }
+-- Claude's files on the Kindle, newest first, without the book being read.
+function Home:filesSection(kindle)
     local current = kindle.books[1]
-    if current then
-        table.insert(sections, { title = _("Continue reading"), card = self:bookCard(current, kindle.days) })
-    end
-    local reading = self:readingCard(kindle.days)
-    if reading then table.insert(sections, { title = _("Reading"), card = reading }) end
     local rows, new, more = {}, 0, false
     for _i, book in ipairs(kindle.shelf) do
         if not book.percent and book.status ~= "complete" then new = new + 1 end
@@ -321,15 +315,61 @@ function Home:kindleSections(kindle)
             })
         end
     end
-    -- GitHub's calendar sits with the reading one: it is kept on the Kindle too.
-    local github = self.app.github and self.app.github:sections() or {}
-    if github.calendar then table.insert(sections, github.calendar) end
     if more then
         table.insert(rows, { title = _("All files from Claude…"), callback = function() self:browseFiles() end })
     end
     local title = new == 1 and _("From Claude · 1 new")
         or new > 1 and T(_("From Claude · %1 new"), new) or _("From Claude")
-    table.insert(sections, { title = title, rows = rows })
+    return { title = title, rows = rows }
+end
+
+--[[
+    The sections of one card (ids in features/layout.lua), empty when it has
+    nothing to show. data is nil when the PC can't be reached: then only the
+    Kindle's own cards show.
+--]]
+function Home:cardSections(id, data, extras)
+    local kindle = self.kindle or { books = {}, days = {}, shelf = {} }
+    local github = self.app.github and self.app.github:sections() or {}
+    if id == "question" then
+        return { data and data.waiting and { card = self:heroCard(data.waiting) } or nil }
+    elseif id == "sessions" then
+        if not data then return {} end
+        local groups, sections = self:groups(data.worktrees), {}
+        for _i, key in ipairs({ "needs", "working", "done" }) do
+            table.insert(sections, { title = style.status[key].label, rows = groups[key] })
+        end
+        return sections
+    elseif id == "prs" then
+        return { data and github.prs or nil }
+    elseif id == "usage" then
+        local gauges = self:gaugesCard(extras.usage)
+        return { gauges and { title = _("Claude usage"), card = gauges } or nil }
+    elseif id == "activity" then
+        local tiles = self:tilesCard(extras)
+        return { tiles and { title = _("Activity"), card = tiles } or nil }
+    elseif id == "week" then
+        return { self.app.week and self.app.week:section(self.kindle, extras.stats) or nil }
+    elseif id == "book" then
+        local current = kindle.books[1]
+        return { current and { title = _("Continue reading"), card = self:bookCard(current, kindle.days) } or nil }
+    elseif id == "reading" then
+        local reading = self:readingCard(kindle.days)
+        return { reading and { title = _("Reading"), card = reading } or nil }
+    elseif id == "github" then
+        return { github.calendar }
+    elseif id == "files" then
+        return { self:filesSection(kindle) }
+    end
+    return {}
+end
+
+-- Every card Home shows, in the user's order.
+function Home:sections(data, extras)
+    local sections = {}
+    for _i, id in ipairs(self.app.layout:shown("home")) do
+        for _j, section in ipairs(self:cardSections(id, data, extras or {})) do table.insert(sections, section) end
+    end
     return sections
 end
 
@@ -339,23 +379,8 @@ end
     The Kindle's own data is self.kindle (see loadKindle).
 --]]
 function Home:dashboard(data, extras, updating)
-    extras = extras or {}
     local groups = self:groups(data.worktrees)
-    local sections = {}
-    if data.waiting then table.insert(sections, { card = self:heroCard(data.waiting) }) end
-    for _i, key in ipairs({ "needs", "working", "done" }) do
-        table.insert(sections, { title = style.status[key].label, rows = groups[key] })
-    end
-    local github = self.app.github and self.app.github:sections() or {}
-    if github.prs then table.insert(sections, github.prs) end
-    local gauges = self:gaugesCard(extras.usage)
-    if gauges then table.insert(sections, { title = _("Claude usage"), card = gauges }) end
-    local tiles = self:tilesCard(extras)
-    if tiles then table.insert(sections, { title = _("Activity"), card = tiles }) end
-    local week = self.app.week and self.app.week:section(self.kindle, extras.stats)
-    if week then table.insert(sections, week) end
-    -- The book, then the reading and GitHub heatmaps together.
-    for _i, section in ipairs(self:kindleSections(self.kindle)) do table.insert(sections, section) end
+    local sections = self:sections(data, extras)
 
     local subtitle
     if updating then
@@ -467,7 +492,7 @@ function Home:load(force)
         end,
         on_error = function(err)
             -- The Kindle's side of Home works without the PC.
-            local sections = self:kindleSections(self.kindle)
+            local sections = self:sections(nil, {})
             if #sections > 0 then
                 table.insert(sections, 1, { card = {
                     type = "hero",

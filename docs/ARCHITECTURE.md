@@ -9,7 +9,7 @@ follows KOReader's lifecycle; everything else lives under `orca/`:
 | `orca/api/` | Orca RPC calls returning plain data: `api.git.status(c, wt)`; `github` also parses the public contribution page | the client |
 | `orca/render/` | pure helpers: `ansi` (escape codes, prompt excerpt, choices), `diff`, `heat` (heatmap levels, streaks, grid) | nothing |
 | `orca/ui/` | `style` (design tokens), `kit` (rows, headers, title bar, tabs, buttons), `cards` (dashboard blocks: hero, gauges, tiles, figures, book, heatmap), `poster` (a screen spec drawn into a PNG: the sleep screen; `app.poster`), `window` (the screen stack), `dialog` (cards: confirm, sheet, alert, toast), `text` (keyboard input, long text, open as book) | KOReader widgets |
-| `orca/features/` | one module per area: `home`, `workspace`, `session`, `create`, `git`, `files`, `conversations`, `notify`, `accounts`, `automations`, `sleepscreen`, `passage`, `github` (Home's pull requests and contribution calendar), `week` (the "This week" card; keeps a daily snapshot of Orca's totals), `menu` | `app` |
+| `orca/features/` | one module per area: `home`, `workspace`, `session`, `create`, `git`, `files`, `conversations`, `notify`, `accounts`, `automations`, `sleepscreen`, `passage`, `github` (Home's pull requests and contribution calendar), `week` (the "This week" card; keeps a daily snapshot of Orca's totals), `layout` (which cards Home and the sleep picture show, and their order), `menu` | `app` |
 | `orcaclient/` | WebSocket + NaCl transport for Orca's mobile protocol | LuaSocket, libtweetnacl |
 
 ## The app context
