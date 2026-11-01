@@ -33,6 +33,10 @@ local TICK = 1
 local RETRY = 10          -- s between reconnect attempts while the view is open
 local STATES_EVERY = 5    -- s between agent-state reads for the subtitle
 local SCROLLBACK = 200    -- lines read when the desktop can't render the screen
+-- After a reconnect (e.g. waking up) the desktop notices the dead socket only
+-- later, and dropping its subscription gives the terminal back its desktop
+-- size. Claim the Kindle's size again once that cleanup has happened.
+local RECLAIM_AFTER = { 20, 45 }
 
 local KEY_BYTES = {
     ["1"] = "1", ["2"] = "2", ["3"] = "3",
@@ -50,7 +54,11 @@ function Session.new(app)
         local s = self.current
         if s and s.subscribed then
             s.subscribed = false
-            self:subscribe(c, s)
+            if self:subscribe(c, s) and s.fit then
+                local t = app.now()
+                s.reclaim = {}
+                for _i, delay in ipairs(RECLAIM_AFTER) do table.insert(s.reclaim, t + delay) end
+            end
         end
     end)
     return self
@@ -259,6 +267,11 @@ function Session:tick(s)
         return
     end
     app.connection:pump(app.jobs)
+    if s.reclaim and s.reclaim[1] and t >= s.reclaim[1] then
+        table.remove(s.reclaim, 1)
+        self:reclaim(s)
+        return
+    end
     if s.live then
         if s.dirty and (t - (s.last_output or 0) >= QUIET or t - (s.dirty_since or t) >= MAX_DELAY) then
             self:refresh(s)
@@ -266,6 +279,21 @@ function Session:tick(s)
     elseif t - s.last_refresh >= app.settings:get("refresh_interval") then
         self:refresh(s)
     end
+end
+
+-- Takes the terminal's size back for the Kindle and redraws.
+function Session:reclaim(s)
+    self.app:run{
+        once = true,
+        run = function(c)
+            if not (s.fit and s.subscribed) then return true end
+            local ok, err = c:claimViewport(s.handle, s.viewport)
+            if ok then s.fit_lost = false end
+            return ok, err
+        end,
+        -- The program redraws at the new size; read it once that settles.
+        done = function() UIManager:scheduleIn(QUIET, function() self:refresh(s) end) end,
+    }
 end
 
 function Session:startTicker(s)

@@ -94,7 +94,7 @@ function kit.row(row, width)
     local pad = style.space.l
     local glyph_widget = row.glyph and text(row.glyph, "row", { bold = row.bold, dim = row.dim })
     -- Status glyphs fit the column; wider ones (git's "M", "??") get room to breathe.
-    local glyph_w = glyph_widget and math.max(style.space.xl, glyph_widget:getSize().w + style.space.s) or 0
+    local glyph_w = glyph_widget and math.max(style.space.xl, glyph_widget:getSize().w + style.space.m) or 0
     local accessory = row.chevron and style.glyph.chevron or nil
     local accessory_w = accessory and style.space.l or 0
 
