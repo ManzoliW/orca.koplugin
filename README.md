@@ -89,7 +89,10 @@ book. Every Orca screen has the clock, Tailscale, the PC link and the battery
 at the top: tap that line to turn Tailscale on or off or test the
 connection. **⚙** next to ‹ / ✕ holds the settings:
 
-<p><img src="docs/screenshots/menu.png" width="300" alt="Orca settings"></p>
+<p>
+  <img src="docs/screenshots/connection.png" width="250" alt="The connection card the status line opens">
+  <img src="docs/screenshots/menu.png" width="250" alt="Orca settings (⚙)">
+</p>
 
 > [!WARNING]
 > The pairing link is a device credential. Keep it out of chats, screenshots

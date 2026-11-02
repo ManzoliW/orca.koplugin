@@ -3,7 +3,8 @@
     python tools/screenshots/cover.py [left.png middle.png right.png]
 
 Defaults to a session, Home and the heatmaps from docs/screenshots/.
-1280x640, GitHub's size for a repository's social preview.
+1280x460: the title block and the three Kindles share one vertical center
+and the same margin on every side.
 """
 import sys
 from pathlib import Path
@@ -12,7 +13,8 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOTS = ROOT / "docs" / "screenshots"
-W, H = 1280, 640
+W, H = 1280, 460
+MARGIN = 64        # px around everything; the Kindles keep it top and bottom
 PAPER = (244, 241, 234)
 INK = (28, 28, 28)
 DIM = (96, 92, 86)
@@ -58,25 +60,35 @@ def main():
     shots = [Path(p) for p in sys.argv[1:4]] or [SHOTS / "session.png", SHOTS / "home.png", SHOTS / "home-reading.png"]
     canvas = Image.new("RGBA", (W, H), PAPER + (255,))
 
-    d = ImageDraw.Draw(canvas)
-    title = font(["georgiab.ttf", "DejaVuSerif-Bold.ttf"], 64)
-    body = font(["georgia.ttf", "DejaVuSerif.ttf"], 26)
-    d.text((72, 190), "Kindle × Orca", font=title, fill=INK)
-    lines = ["Claude Code and your other agents,", "on e-ink. Answer them from your book."]
-    for i, line in enumerate(lines):
-        d.text((74, 290 + i * 40), line, font=body, fill=DIM)
-    small = font(["segoeui.ttf", "DejaVuSans.ttf"], 20)
-    d.text((74, 400), "A KOReader plugin  ·  Tailscale  ·  GPLv3", font=small, fill=DIM)
-
-    # Three Kindles, the middle one in front.
-    back, front = 210, 250
+    # Three Kindles, the middle one in front and as tall as the margins allow;
+    # the side ones centered on it.
+    front = round((H - 2 * MARGIN * 0.6) / (4 / 3 + 0.25))
+    back = round(front * 0.84)
     left, middle, right = (kindle(s, w) for s, w in zip(shots, (back, front, back)))
-    overlap = 70
+    overlap = round(front * 0.28)
     total = left.width + middle.width + right.width - 2 * overlap
-    x = W - 40 - total
-    shadow(canvas, left, x, H - left.height - 60)
-    shadow(canvas, right, x + left.width + middle.width - 2 * overlap, H - right.height - 60)
-    shadow(canvas, middle, x + left.width - overlap, H - middle.height - 30)
+    x = W - MARGIN - total
+    mid = H // 2
+    shadow(canvas, left, x, mid - left.height // 2)
+    shadow(canvas, right, x + left.width + middle.width - 2 * overlap, mid - right.height // 2)
+    shadow(canvas, middle, x + left.width - overlap, mid - middle.height // 2)
+
+    # The title block, centered on the same line.
+    d = ImageDraw.Draw(canvas)
+    title = font(["georgiab.ttf", "DejaVuSerif-Bold.ttf"], 60)
+    body = font(["georgia.ttf", "DejaVuSerif.ttf"], 25)
+    small = font(["segoeui.ttf", "DejaVuSans.ttf"], 19)
+    blocks = [
+        ("Kindle × Orca", title, INK, 26),
+        ("Claude Code and your other agents,", body, DIM, 8),
+        ("on e-ink. Answer them from your book.", body, DIM, 24),
+        ("A KOReader plugin  ·  Tailscale  ·  GPLv3", small, DIM, 0),
+    ]
+    heights = [d.textbbox((0, 0), t, font=f)[3] for t, f, _c, _g in blocks]
+    y = mid - (sum(heights) + sum(g for *_x, g in blocks)) // 2
+    for (t, f, color, gap), h in zip(blocks, heights):
+        d.text((MARGIN, y), t, font=f, fill=color)
+        y += h + gap
 
     out = ROOT / "docs" / "cover.png"
     canvas.convert("RGB").save(out, optimize=True)
