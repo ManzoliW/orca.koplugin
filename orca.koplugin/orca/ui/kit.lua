@@ -199,8 +199,10 @@ end
 
 --[[
     Title bar: back (‹) or close (✕) on the left, centered title and optional
-    subtitle, up to two action glyphs on the right.
-    opts = { title, subtitle, on_back, on_close, actions = { {glyph, callback} } }
+    subtitle, up to two action glyphs on the right; one more after back or
+    close on the left.
+    opts = { title, subtitle, on_back, on_close, actions = { {glyph, callback} },
+             left_action = {glyph, callback} }
 --]]
 function kit.titleBar(opts, width)
     local side = style.min_target * 2 + style.space.s
@@ -216,6 +218,9 @@ function kit.titleBar(opts, width)
         table.insert(left, kit.iconButton(style.glyph.back, opts.on_back))
     elseif opts.on_close then
         table.insert(left, kit.iconButton(style.glyph.close, opts.on_close))
+    end
+    if opts.left_action then
+        table.insert(left, kit.iconButton(opts.left_action.glyph, opts.left_action.callback))
     end
     local right = HorizontalGroup:new{}
     for _, a in ipairs(opts.actions or {}) do

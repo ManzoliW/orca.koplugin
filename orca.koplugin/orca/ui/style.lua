@@ -79,6 +79,7 @@ style.min_target = S(48)
 style.row_height = S(64)      -- row with a subtitle
 style.row_height_single = S(52)
 style.title_height = S(60)
+style.status_height = S(26)   -- clock and battery line above every screen
 style.button_height = S(56)
 
 -- Status and drill-in glyphs (present in KOReader's Noto fonts).
@@ -93,6 +94,7 @@ style.glyph = {
     close = "✕",
     refresh = "↻",
     add = "+",
+    settings = "⚙",
     check = "✓",
     cross = "✕",
     pending = "…",

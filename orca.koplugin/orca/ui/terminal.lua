@@ -1,8 +1,11 @@
 --[[
-    The full-screen session view: title bar (‹ back, ↻ refresh, workspace and
-    status underneath), the terminal's screen in monospace, and a key bar.
+    The full-screen session view: status line (clock, battery), title bar
+    (‹ back, ↻ refresh, workspace and status underneath), the terminal's
+    screen in monospace, and a key bar.
 
         local view = Terminal.new{ title, subtitle, font_size,
+                                   status = function() end,    -- ui/statusline info
+                                   on_status = function() end, -- tapped the status line
                                    on_key = function(id) end,  -- see Terminal.KEYS
                                    on_close = function() end,  -- once, however it closed
                                    on_refresh = function() end,
@@ -32,6 +35,7 @@ local VerticalSpan = require("ui/widget/verticalspan")
 local Screen = Device.screen
 local _ = require("orca.core.i18n")
 
+local StatusLine = require("orca.ui.statusline")
 local kit = require("orca.ui.kit")
 local style = require("orca.ui.style")
 
@@ -57,6 +61,8 @@ local View = InputContainer:extend{
     on_close = nil,
     on_refresh = nil,
     on_resize = nil,
+    status = nil,
+    on_status = nil,
 }
 
 function View:init()
@@ -68,10 +74,11 @@ function View:init()
     self.updates = 0
     self.text = self.text or _("Connecting…")
 
+    local line = self.status and StatusLine.build(self.status(), w, self.on_status) or VerticalSpan:new{ width = 0 }
     self.title_bar = self:titleBar(w)
     local keys = self:keyBar(w)
     local pad = style.space.s
-    local text_h = h - self.title_bar:getSize().h - keys:getSize().h - 2 * pad
+    local text_h = h - line:getSize().h - self.title_bar:getSize().h - keys:getSize().h - 2 * pad
     self.scroll = ScrollTextWidget:new{
         text = self.text,
         face = style.mono(self.font_size),
@@ -82,6 +89,7 @@ function View:init()
     self.scroll:scrollToBottom()
     self.body = VerticalGroup:new{
         align = "left",
+        line,
         self.title_bar,
         FrameContainer:new{ bordersize = 0, padding = pad, self.scroll },
         keys,
@@ -133,6 +141,13 @@ end
 
 function View:onShow()
     UIManager:setDirty(self, function() return "full", self.dimen end)
+    if self.status and not self.ticker then
+        self.ticker = StatusLine.ticker(self, self.status, self.dimen.w, function(line)
+            self.body[1] = line
+            self.body:resetLayout()
+        end, self.on_status)
+        self.ticker.start()
+    end
     return true
 end
 
@@ -175,11 +190,12 @@ function View:setSubtitle(subtitle)
     local w = self.dimen.w
     local old = self.title_bar
     self.title_bar = self:titleBar(w)
-    self.body[1] = self.title_bar
+    self.body[2] = self.title_bar
     self.body:resetLayout()
     old:free()
+    local y = self.body[1]:getSize().h
     local h = self.title_bar:getSize().h
-    UIManager:setDirty(self, function() return "ui", Geom:new{ x = 0, y = 0, w = w, h = h } end)
+    UIManager:setDirty(self, function() return "ui", Geom:new{ x = 0, y = y, w = w, h = h } end)
 end
 
 -- Columns and rows of monospace text that fit in the text area.
@@ -219,6 +235,7 @@ end
 function View:close()
     if self.closed then return end
     self.closed = true
+    if self.ticker then self.ticker.stop() end
     UIManager:close(self, "full")
     if self.on_close then self.on_close() end
 end

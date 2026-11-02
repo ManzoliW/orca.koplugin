@@ -223,3 +223,52 @@ H.test("connection errors show in the screen with a refresh", function()
     H.has(t.top().empty, "Can't reach your PC")
     H.eq(type(t.top().refresh), "function")
 end)
+
+H.test("with Tailscale off, the can't-reach card starts it and reloads", function()
+    local app, t = H.app({ results = { ["worktree.ps"] = function() return nil, "proxy: connection refused" end } })
+    local up = false
+    app.tailscale = function()
+        return { isUp = function() return up end, startTailscale = function() up = true end }
+    end
+    app.home:open()
+    t.settle()
+    local card = t.top().sections[1].card
+    H.eq(card.title, "Can't reach your PC")
+    H.eq(card.buttons[1][1].text, "Start Tailscale")
+    H.results["worktree.ps"] = { worktrees = { H.WT, H.WT2 } }
+    card.buttons[1][1].callback()
+    t.settle()
+    H.eq(up, true)
+    H.eq(t.top().title, "Orca")
+    H.eq(t.top().sections[1].card.type, "hero", "the question card")
+end)
+
+H.test("a workspace with one session opens it from Home; the Workspaces tab still opens the workspace", function()
+    local app, t = H.app({ results = { ["terminal.list"] = function(p)
+        if p.worktree == "id:" .. H.WT2.worktreeId then return { terminals = { { handle = "t9", title = "Claude" } } } end
+        return { terminals = { { handle = "t1", title = "Claude" }, { handle = "t2", title = "zsh" } } }
+    end } })
+    local opened
+    app.session.open = function(_, term, wt) opened = { term = term, wt = wt } end
+    app.home:open()
+    t.settle()
+    t.tap("faxa")
+    H.eq(opened.term.handle, "t9")
+    H.eq(opened.wt, H.WT2)
+    H.eq(t.top().title, "Orca", "no workspace screen in between")
+
+    opened = nil
+    t.top().tabs[2].callback(); t.settle()
+    t.tap("faxa")
+    H.eq(opened, nil)
+    H.eq(t.top().title, "faxa")
+end)
+
+H.test("Home's tabs are Home, Workspaces and Chats", function()
+    local app, t = H.app()
+    app.home:open()
+    t.settle()
+    local names = {}
+    for _i, tab in ipairs(t.top().tabs) do table.insert(names, tab.text) end
+    H.eq(table.concat(names, ","), "Home,Workspaces,Chats")
+end)

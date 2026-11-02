@@ -10,7 +10,7 @@
         contributions the same way, and what Orca saved to documents/Claude
         (these come from the Kindle, so they show even when the PC can't be
         reached)
-      - tabs: Home, Workspaces, Chats, Usage, Automations
+      - tabs: Home, Workspaces, Chats (usage opens from its card)
 
     The last dashboard is drawn straight away while the new one loads.
     Workspaces and agent states come first; usage, totals and conversations
@@ -51,7 +51,8 @@ local function branchOf(wt)
     return util.str(wt.branch):gsub("^refs/heads/", "")
 end
 
-function Home:workspaceRow(wt, pick)
+-- direct: Home's sessions card, where a workspace with one session opens it.
+function Home:workspaceRow(wt, pick, direct)
     local status = style.status[common.state(wt.status).key]
     local count = util.num(wt.liveTerminalCount)
     local parts = {}
@@ -66,12 +67,15 @@ function Home:workspaceRow(wt, pick)
         subtitle = table.concat(parts, " · "),
         bold = status.bold,
         chevron = true,
-        callback = function() self.app.workspace:open(wt, pick) end,
+        callback = function()
+            if direct and count == 1 then return self.app.workspace:openOnly(wt) end
+            self.app.workspace:open(wt, pick)
+        end,
     }
 end
 
 -- Rows per state, most urgent first: { needs = {...}, working, done, idle }.
-function Home:groups(worktrees, pick)
+function Home:groups(worktrees, pick, direct)
     local groups = { needs = {}, working = {}, done = {}, idle = {} }
     table.sort(worktrees, function(a, b)
         local ra, rb = common.state(a.status).rank, common.state(b.status).rank
@@ -81,7 +85,7 @@ function Home:groups(worktrees, pick)
         return util.basename(a.path):lower() < util.basename(b.path):lower()
     end)
     for _, wt in ipairs(worktrees) do
-        table.insert(groups[common.state(wt.status).key], self:workspaceRow(wt, pick))
+        table.insert(groups[common.state(wt.status).key], self:workspaceRow(wt, pick, direct))
     end
     return groups
 end
@@ -212,8 +216,6 @@ function Home:tabs()
         { text = _("Home"), selected = true },
         { text = _("Workspaces"), callback = function() self:openList() end },
         { text = _("Chats"), callback = function() self.app.conversations:open() end },
-        { text = _("Usage"), callback = function() self.app.accounts:open() end },
-        { text = _("Automations"), callback = function() self.app.automations:open() end },
     }
 end
 
@@ -335,7 +337,7 @@ function Home:cardSections(id, data, extras)
         return { data and data.waiting and { card = self:heroCard(data.waiting) } or nil }
     elseif id == "sessions" then
         if not data then return {} end
-        local groups, sections = self:groups(data.worktrees), {}
+        local groups, sections = self:groups(data.worktrees, nil, true), {}
         for _i, key in ipairs({ "needs", "working", "done" }) do
             table.insert(sections, { title = style.status[key].label, rows = groups[key] })
         end
@@ -493,12 +495,22 @@ function Home:load(force)
         on_error = function(err)
             -- The Kindle's side of Home works without the PC.
             local sections = self:sections(nil, {})
-            if #sections > 0 then
+            local buttons = { { text = _("Try again"), callback = function() self:load(true) end } }
+            -- Tailscale off is the usual reason: offer to start it right here.
+            local ts = self.app.tailscale and self.app.tailscale()
+            if ts and not ts:isUp() and self.app.settings:isPaired() then
+                table.insert(buttons, 1, { text = _("Start Tailscale"), primary = true, callback = function()
+                    ts:startTailscale()
+                    self.app.connection:reset("tailscale started")
+                    self:load(true)
+                end })
+            end
+            if #sections > 0 or #buttons > 1 then
                 table.insert(sections, 1, { card = {
                     type = "hero",
                     title = _("Can't reach your PC"),
                     text = self.app:explain(err),
-                    buttons = { { { text = _("Try again"), callback = function() self:load(true) end } } },
+                    buttons = { buttons },
                 } })
             end
             page:set{

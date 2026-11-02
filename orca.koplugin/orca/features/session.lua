@@ -109,6 +109,8 @@ function Session:open(term, wt)
         title = s.title,
         subtitle = self:subtitle(s),
         font_size = settings:get("font_size"),
+        status = self.app.status,
+        on_status = self.app.network and function() self.app.network:open() end,
         on_key = function(id) self:key(s, id) end,
         on_refresh = function() self:refresh(s) end,
         on_close = function() self:finish(s) end,

@@ -67,12 +67,14 @@ Tailscale on both the Kindle and the PC, and Orca running on the PC.
    [release](https://github.com/ManzoliW/orca.koplugin/releases) has a zip of
    each plugin (and `SHA256SUMS`); unzip them into `koreader/plugins/`.
 3. **Start Tailscale on the Kindle**: KOReader → Network → Tailscale → Setup
-   (auth key, binaries), then **Start Service and Connect**. It starts by
-   itself with KOReader after that.
+   (auth key, binaries), then tick **Connected**. That menu is only for
+   setup: it starts by itself with KOReader after that, and Orca's status
+   line shows it and turns it on or off.
 4. **Pair with Orca**: on the PC, Orca → Settings → Mobile. Save the pairing
-   link to `/mnt/us/orca-pairing.txt` on the Kindle, then KOReader → Tools →
-   Orca → Pairing → **Import**. The file is deleted after import.
-5. **Test it**: Tools → Orca → Connection → **Test connection**. It reports
+   link to `/mnt/us/orca-pairing.txt` on the Kindle, then open KOReader →
+   Tools → **Orca**, tap **⚙** in its title bar → Pairing → **Import**. The
+   file is deleted after import.
+5. **Test it**: tap the status line at the top of Orca → **Test connection**. It reports
    either the number of workspaces found or the step that failed.
 6. **Kindle firmware 5.16 or later**: copy the two files in
    [`koreader-patches/`](koreader-patches) (also `koreader-patches.zip` in
@@ -81,10 +83,13 @@ Tailscale on both the Kindle and the PC, and Orca running on the PC.
    KOReader's top corners every minute; the patches pause it while KOReader
    runs.
 
-Then open it with Tools → Orca → **Open Orca**. Everything else is in the
-same menu:
+Then open it with Tools → **Orca**, or bind **Open Orca** to a gesture
+(KOReader → Settings → Taps and gestures) to open it with one tap from a
+book. Every Orca screen has the clock, Tailscale, the PC link and the battery
+at the top: tap that line to turn Tailscale on or off or test the
+connection. **⚙** next to ‹ / ✕ holds the settings:
 
-<p><img src="docs/screenshots/menu.png" width="300" alt="Tools → Orca menu"></p>
+<p><img src="docs/screenshots/menu.png" width="300" alt="Orca settings"></p>
 
 > [!WARNING]
 > The pairing link is a device credential. Keep it out of chats, screenshots
@@ -94,7 +99,7 @@ same menu:
 
 ### Home
 
-**Open Orca** starts on a dashboard, most urgent first:
+Orca starts on a dashboard, most urgent first:
 
 | Card | What it shows |
 | --- | --- |
@@ -109,13 +114,16 @@ same menu:
 | **GitHub** | Your public contribution calendar, drawn the same way. |
 | **From Claude** | Documents Claude sent to the Kindle, **New** until you open them. |
 
-Tabs at the bottom lead to **Workspaces**, **Chats**, **Usage** and
-**Automations**. The last dashboard shows at once while the new one loads,
+Tabs at the bottom lead to **Workspaces** and **Chats**; tap the usage bars
+for your accounts. A workspace with a single session opens that session
+straight from Home. The last dashboard shows at once while the new one loads,
 and the Kindle's own cards (reading, GitHub, documents) work without the PC.
+When the PC can't be reached because Tailscale is off, the card says so with
+**Start Tailscale**.
 
 <img src="docs/screenshots/cards.png" width="220" align="right">
 
-**Home cards…** (Tools → Orca) lets you hide each card on Home or on the sleep
+**Home cards…** (**⚙**) lets you hide each card on Home or on the sleep
 screen, and change their order: the sleep picture leaves out what doesn't
 fit, so this is also how you choose what it keeps.
 
@@ -130,8 +138,8 @@ fit, so this is also how you choose what it keeps.
   reused for 15 minutes.
 - The contribution calendar is GitHub's public page (no token): the Kindle
   fetches it itself, at most twice a day, and keeps it for offline use. Your
-  GitHub user is the author of your pull requests, or set it in Tools → Orca
-  → **GitHub user**.
+  GitHub user is the author of your pull requests, or set it in **⚙** →
+  **GitHub user**.
 - Orca only reports lifetime totals, so for **This week** the Kindle keeps
   one snapshot a day and subtracts the one from a week ago. During the first
   week agent numbers count from the first snapshot.
@@ -203,7 +211,7 @@ Inside a workspace:
   and shows if the picture can't be drawn. Turning the option off restores
   your previous sleep screen.
 - Waking on a question doesn't open Orca over its own screens or over a popup
-  that already asks it (Tools → Orca → **Open the question when I wake the
+  that already asks it (**⚙** → **Open the question when I wake the
   Kindle** turns it off).
 - Battery: the notification stream costs about 5 mA while the Kindle is
   awake (52 mA vs 48 mA on a Kindle Basic, Wi-Fi on), roughly 10% less
@@ -231,12 +239,11 @@ git diff main | python tools/send_to_kindle.py - --title "Review: my-branch"
 python tools/pull_notes.py --since 2026-10-01 --out notes.md
 ```
 
-### Usage, accounts and automations
+### Usage and accounts
 
-**Usage** shows the 5-hour and weekly limits and Orca's totals, and with more
-than one Claude account in Orca, lets you pick the one new sessions use.
-**Automations** lists Orca's scheduled agent runs with **Run now** and on/off,
-on desktops that allow it from mobile clients.
+Tapping the usage bars on Home shows the 5-hour and weekly limits and Orca's
+totals, and with more than one Claude account in Orca, lets you pick the one
+new sessions use.
 
 ### Languages
 

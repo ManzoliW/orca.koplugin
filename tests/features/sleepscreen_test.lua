@@ -209,7 +209,7 @@ H.test("waking doesn't open Home without a question, over Orca, or when turned o
     H.eq(app.nav:isOpen(), false, "turned off")
 
     app.settings:set("wake_to_question", true)
-    app.automations:open(); t.settle()
+    app.conversations:open(); t.settle()
     local top = t.top()
     app.sleep:wake(); t.flush(1); t.settle()
     H.eq(t.top(), top, "Orca was already open")

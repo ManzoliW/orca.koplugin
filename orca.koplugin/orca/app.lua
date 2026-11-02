@@ -50,18 +50,18 @@ end
 function App:explain(err)
     local e = tostring(err or "")
     if e == "not paired" then
-        return _("This Kindle isn't paired with Orca yet. Open Tools → Orca → Pairing.")
+        return _("This Kindle isn't paired with Orca yet. Tap ⚙ at the top of Orca → Pairing.")
     end
     if e:match("timed out") or e:match("timeout") or e:match("refused") or e:match("SOCKS")
             or e:match("not connected") or e:match("closed") or e:match("unreachable") then
         return T(_("Can't reach your PC. Check that Orca is running and Tailscale is on.\n\n(%1)"), e)
     end
-    -- The desktop keeps some methods (automations, for one) from mobile clients.
+    -- The desktop keeps some methods from mobile clients.
     if e:match("^forbidden") or e:match("not available to mobile") then
         return _("Orca doesn't let phones or the Kindle do this. Use Orca on your PC.")
     end
     if e:match("authentication") then
-        return _("Orca rejected this Kindle. The pairing may have been revoked: pair again in Tools → Orca → Pairing.")
+        return _("Orca rejected this Kindle. The pairing may have been revoked: pair again in ⚙ → Pairing.")
     end
     return e
 end

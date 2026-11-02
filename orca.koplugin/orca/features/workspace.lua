@@ -97,6 +97,19 @@ function Workspace:load(wt, pick, page)
     }
 end
 
+-- Opens the workspace's only session straight away; the workspace when it
+-- has more (or none) by now.
+function Workspace:openOnly(wt)
+    self.app:request{
+        busy = _("Loading sessions…"),
+        run = function(c) return c:listTerminals(wt.worktreeId) end,
+        done = function(terminals)
+            if #terminals == 1 then return self.app.session:open(terminals[1], wt) end
+            self:open(wt)
+        end,
+    }
+end
+
 function Workspace:open(wt, pick)
     self.pages = self.pages or {}
     self.pages[wt.worktreeId] = nil

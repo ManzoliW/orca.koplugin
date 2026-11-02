@@ -7,6 +7,7 @@
     this plugin's own bin/ directory; no KUAL or other extension required.
 --]]
 
+local Dispatcher    = require("dispatcher")
 local InfoMessage   = require("ui/widget/infomessage")
 local InputDialog   = require("ui/widget/inputdialog")
 local UIManager     = require("ui/uimanager")
@@ -50,7 +51,30 @@ function Tailscale:init()
     end
 
     self.ui.menu:registerToMainMenu(self)
+    self:onDispatcherRegisterActions()
     self:autostart()
+end
+
+-- Gestures (Settings → Taps and gestures) can turn Tailscale on or off.
+function Tailscale:onDispatcherRegisterActions()
+    Dispatcher:registerAction("tailscale_toggle", {
+        category = "none", event = "TailscaleToggle", title = _("Tailscale on/off"), general = true,
+    })
+end
+
+function Tailscale:onTailscaleToggle()
+    self:toggle()
+    return true
+end
+
+-- Whether tailscaled is running. Cheap (one stat), so other plugins (Orca's
+-- status line) can call it on every redraw.
+function Tailscale:isUp()
+    return self:isSocketReady()
+end
+
+function Tailscale:toggle()
+    if self:isUp() then self:stopTailscale() else self:startTailscale() end
 end
 
 -- init() runs for every FileManager/Reader instance; autostart once per launch.
@@ -274,31 +298,8 @@ end
 -- Daemon operations
 -- ---------------------------------------------------------------------------
 
-function Tailscale:startTailscaled()
-    if not self:requireTun() then return end
-    self:withSpinner(_("Starting tailscaled…"), function()
-        if self:ensureTailscaledRunning(true) then
-            self:showInfo(string.format(_("tailscaled started (%s).\nNow tap \"Connect to Tailnet\" to join your network."), self:tunMode()), 5)
-        else
-            self:showInfo(_("tailscaled failed to start.\nSee log in plugin's bin/ directory."), 5)
-        end
-    end)
-end
-
-function Tailscale:stopTailscaled()
-    self:withSpinner(_("Stopping tailscaled…"), function()
-        -- Graceful kill, then cleanup, then force-remove socket.
-        os.execute("pkill tailscaled 2>/dev/null; sleep 3")
-        os.execute("rm -f " .. SOCKET_PATH)
-        os.execute(string.format('"%s" -cleanup >> "%s" 2>&1',
-            self.tailscaled_bin, self.paths.tailscaled_stop_log))
-        os.execute("rm -f " .. SOCKET_PATH)
-        self:showInfo(_("tailscaled stopped."), 3)
-    end)
-end
-
 -- ---------------------------------------------------------------------------
--- Client operations
+-- Connect and disconnect
 -- ---------------------------------------------------------------------------
 
 function Tailscale:connectTailscaleInternal()
@@ -376,23 +377,6 @@ function Tailscale:stopTailscale()
         else
             self:showInfo(_("tailscale down failed.\nSee tailscale_stop.log in plugin's bin/ directory."), 5)
         end
-    end)
-end
-
-function Tailscale:connectTailscale()
-    self:withSpinner(_("Connecting to Tailscale…"), function()
-        if not self:isSocketReady() and not self:isRunning("tailscaled") then
-            self:showInfo(_("tailscaled is not running.\nUse Start Service or Start Service and Connect."), 5)
-            return
-        end
-
-        self:connectTailscaleInternal()
-    end)
-end
-
-function Tailscale:disconnectTailscale()
-    self:withSpinner(_("Disconnecting from Tailscale…"), function()
-        self:disconnectTailscaleInternal()
     end)
 end
 
@@ -564,12 +548,15 @@ function Tailscale:addToMainMenu(menu_items)
         sorting_hint = "network",
         sub_item_table = {
             {
-                text     = _("Start Service and Connect"),
-                callback = function() self:startTailscale() end,
+                text         = _("Connected"),
+                help_text    = _("Starts tailscaled and joins your tailnet, or leaves it and stops tailscaled."),
+                checked_func = function() return self:isUp() end,
+                callback     = function() self:toggle() end,
             },
             {
-                text     = _("Disconnect and Stop Service"),
-                callback = function() self:stopTailscale() end,
+                text     = _("Connection Status"),
+                callback = function() self:showStatus() end,
+                separator = true,
             },
             {
                 text = _("Setup"),
@@ -581,31 +568,6 @@ function Tailscale:addToMainMenu(menu_items)
                     {
                         text     = _("Install / Update Binaries"),
                         callback = function() self:updateBinaries() end,
-                    },
-                },
-            },
-            {
-                text = _("Advanced"),
-                sub_item_table = {
-                    {
-                        text     = _("Start Service"),
-                        callback = function() self:startTailscaled() end,
-                    },
-                    {
-                        text     = _("Stop Service"),
-                        callback = function() self:stopTailscaled() end,
-                    },
-                    {
-                        text     = _("Connect to Tailnet"),
-                        callback = function() self:connectTailscale() end,
-                    },
-                    {
-                        text     = _("Disconnect from Tailnet"),
-                        callback = function() self:disconnectTailscale() end,
-                    },
-                    {
-                        text     = _("Connection Status"),
-                        callback = function() self:showStatus() end,
                     },
                     {
                         text         = _("Start service when KOReader starts"),

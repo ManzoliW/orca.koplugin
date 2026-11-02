@@ -18,6 +18,8 @@ if not package.path:find(PLUGIN_DIR .. "/?.lua", 1, true) then
 end
 
 local DataStorage = require("datastorage")
+local Device = require("device")
+local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
 local LuaSettings = require("luasettings")
 local NetworkMgr = require("ui/network/manager")
@@ -53,12 +55,12 @@ local FEATURES = {
     conversations = "orca.features.conversations",
     notify = "orca.features.notify",
     accounts = "orca.features.accounts",
-    automations = "orca.features.automations",
     sleep = "orca.features.sleepscreen",
     passage = "orca.features.passage",
     github = "orca.features.github",
     week = "orca.features.week",
     layout = "orca.features.layout",
+    network = "orca.features.network",
 }
 
 local Orca = WidgetContainer:extend{
@@ -70,9 +72,38 @@ local Orca = WidgetContainer:extend{
 -- pass request params or the pairing: they hold the device token.
 local function log(...) logger.info("Orca:", ...) end
 
+-- The Tailscale plugin of the same KOReader screen, when it's installed.
+local function tailscaleOf(plugin)
+    local ui = plugin and plugin.ui
+    local ts = ui and ui.tailscale
+    return type(ts) == "table" and ts.isUp and ts or nil
+end
+
+local function clock()
+    local ok, datetime = pcall(require, "datetime")
+    if ok and datetime.secondsToHour then
+        return datetime.secondsToHour(os.time(), G_reader_settings:isTrue("twelve_hour_clock"))
+    end
+    return os.date("%H:%M")
+end
+
+-- What the status line above every Orca screen shows (ui/statusline).
+local function statusInfo(app)
+    local info = { clock = clock(), pc = app.connection:isConnected() }
+    if Device:hasBattery() then
+        local powerd = Device:getPowerDevice()
+        info.battery = powerd:getCapacity()
+        info.charging = powerd:isCharging()
+    end
+    local ts = app.tailscale()
+    if ts then info.tailscale = ts:isUp() end
+    return info
+end
+
 -- Builds the app context; separate from init so tests can build one with fakes.
 function Orca.buildApp(opts)
     local settings = opts.settings
+    local app
     local schedule = function(delay, fn) UIManager:scheduleIn(delay, fn) end
     local connection = Connection.new{
         settings = settings,
@@ -100,11 +131,17 @@ function Orca.buildApp(opts)
             end
         end,
     }
-    local app = App.new{
+    app = App.new{
         settings = settings,
         connection = connection,
         jobs = jobs,
-        nav = Nav.new(),
+        nav = Nav.new{
+            status = function() return statusInfo(app) end,
+            on_settings = opts.plugin and function() Menu.showSettings(app, opts.plugin) end,
+            on_status = function() app.network:open() end,
+        },
+        status = function() return statusInfo(app) end,
+        tailscale = function() return tailscaleOf(opts.plugin) end,
         dialog = dialog,
         text = text,
         online = function(fn) NetworkMgr:runWhenOnline(fn) end,
@@ -133,6 +170,7 @@ function Orca:init()
         plugin = self,
     }
     self.ui.menu:registerToMainMenu(self)
+    self:onDispatcherRegisterActions()
     if self.ui.highlight then
         self.ui.highlight:addToHighlightDialog("13_orca", function(this)
             return {
@@ -152,6 +190,18 @@ end
 
 function Orca:addToMainMenu(menu_items)
     menu_items.orca = Menu.items(self.app, self)
+end
+
+-- Gestures (Settings → Taps and gestures) can open Orca from anywhere.
+function Orca:onDispatcherRegisterActions()
+    Dispatcher:registerAction("orca_open", {
+        category = "none", event = "OrcaOpen", title = _("Open Orca"), general = true,
+    })
+end
+
+function Orca:onOrcaOpen()
+    self.app.home:open()
+    return true
 end
 
 function Orca:onCloseWidget()
@@ -205,38 +255,6 @@ function Orca:importPairingFile()
         -- The file holds a device credential; don't leave it lying around.
         os.remove(Menu.PAIRING_FILE)
     end
-end
-
--- Connects from scratch and reports which stage fails or how long it took.
-function Orca:testConnection()
-    local app = self.app
-    app.online(function()
-        app.connection:reset()
-        local started = app.now()
-        app:run{
-            busy = _("Testing the connection…"),
-            run = function(c) return c:listWorktrees() end,
-            done = function(worktrees, err)
-                local client = app.connection.instance
-                local target = client and (client.host .. ":" .. client.port) or "?"
-                local via = app.settings:get("use_proxy") and _("through the Tailscale proxy") or _("directly")
-                if worktrees then
-                    app.dialog.alert{
-                        title = _("Connected"),
-                        text = T(_("Reached Orca at %1 %2 in %3 s. %4 workspaces."),
-                            target, via, string.format("%.1f", app.now() - started), #worktrees),
-                    }
-                else
-                    app.dialog.alert{
-                        title = _("Can't reach Orca"),
-                        text = T(_("Tried %1 %2:\n\n%3\n\nIf the proxy isn't reachable, start Tailscale (Network → Tailscale)."),
-                            target, via, tostring(err)),
-                        retry = function() self:testConnection() end,
-                    }
-                end
-            end,
-        }
-    end)
 end
 
 return Orca
